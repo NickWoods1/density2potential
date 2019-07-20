@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: density2potential
+Version: 0.1
+Summary: Find a Kohn-Sham potential corresponding to an exact density
+Home-page: http://www.tcm.phy.cam.ac.uk/profiles/nw361/
+Author: Nick Woods
+Author-email: nw361@cam.ac.uk
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
