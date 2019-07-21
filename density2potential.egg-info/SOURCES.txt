@@ -10,3 +10,5 @@ density2potential/core/ks_potential.py
 density2potential/core/main.py
 density2potential/io/__init__.py
 density2potential/io/input_file.py
+density2potential/plot/__init__.py
+density2potential/plot/animate.py
