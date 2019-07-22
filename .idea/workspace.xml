@@ -4,9 +4,16 @@
     <list default="true" id="c4dc1815-1065-4d70-ab42-ea38d0948984" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/lib/density2potential/core/ks_potential.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/density2potential/core/ks_potential.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/density2potential.egg-info/SOURCES.txt" beforeDir="false" afterPath="$PROJECT_DIR$/density2potential.egg-info/SOURCES.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/lib/density2potential/io/input_file.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/density2potential/io/input_file.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/lib/density2potential/plot/animate.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/density2potential/plot/animate.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/density2potential/core/ks_potential.py" beforeDir="false" afterPath="$PROJECT_DIR$/density2potential/core/ks_potential.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/density2potential/io/input_file.py" beforeDir="false" afterPath="$PROJECT_DIR$/density2potential/io/input_file.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/density2potential/plot/animate.py" beforeDir="false" afterPath="$PROJECT_DIR$/density2potential/plot/animate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/density_reference.npy" beforeDir="false" afterPath="$PROJECT_DIR$/density_reference.npy" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dist/density2potential-0.1-py3.6.egg" beforeDir="false" afterPath="$PROJECT_DIR$/dist/density2potential-0.1-py3.6.egg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functest.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/v_ks.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/v_ks.mp4" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -21,10 +28,11 @@
     <session id="-1892967897">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="1" />
+          <entry key="project.closed" value="2" />
           <entry key="project.open.time.1" value="1" />
           <entry key="project.open.time.2" value="1" />
-          <entry key="project.opened" value="2" />
+          <entry key="project.open.time.8" value="1" />
+          <entry key="project.opened" value="3" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -40,12 +48,12 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="py" value="14800" />
+          <entry key="py" value="19344" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Python" value="14800" />
+          <entry key="Python" value="19344" />
         </counts>
       </usages-collector>
     </session>
@@ -55,7 +63,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/density2potential/core/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-9">
+            <state relative-caret-position="15">
               <caret line="3" column="39" selection-start-line="3" selection-start-column="39" selection-end-line="3" selection-end-column="39" />
               <folding>
                 <marker date="1563593976902" expanded="true" signature="312:318" ph="..." />
@@ -67,17 +75,19 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/density2potential/core/ks_potential.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-365">
-              <caret line="91" column="42" selection-start-line="91" selection-start-column="42" selection-end-line="91" selection-end-column="42" />
+            <state relative-caret-position="495">
+              <caret line="56" column="57" selection-start-line="56" selection-start-column="57" selection-end-line="56" selection-end-column="57" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
-                <marker date="1563681351006" expanded="true" signature="423:428" ph="..." />
-                <marker date="1563681351006" expanded="true" signature="2685:2746" ph="..." />
-                <marker date="1563681351006" expanded="true" signature="3957:4365" ph="..." />
-                <marker date="1563681351006" expanded="true" signature="6111:6393" ph="..." />
-                <marker date="1563681351006" expanded="true" signature="6111:6974" ph="..." />
-                <marker date="1563681351006" expanded="true" signature="7003:7008" ph="..." />
-                <marker date="1563681351006" expanded="true" signature="7903:8156" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="359:364" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="4012:4121" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="5572:6350" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="6349:6350" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="8217:8836" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="8890:9119" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="8890:10121" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="10150:10155" ph="..." />
+                <marker date="1563774468264" expanded="true" signature="11089:11342" ph="..." />
               </folding>
             </state>
           </provider>
@@ -86,12 +96,12 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/density2potential/plot/animate.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="291">
-              <caret line="24" lean-forward="true" selection-start-line="24" selection-end-line="24" />
+            <state>
+              <caret line="62" selection-start-line="62" selection-end-line="62" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
-                <marker date="1563681156236" expanded="true" signature="244:245" ph="..." />
-                <marker date="1563681156236" expanded="true" signature="244:605" ph="..." />
+                <marker date="1563753022643" expanded="true" signature="322:323" ph="..." />
+                <marker date="1563753022643" expanded="true" signature="322:581" ph="..." />
               </folding>
             </state>
           </provider>
@@ -100,12 +110,10 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/density2potential/io/input_file.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="150">
-              <caret line="10" column="42" selection-start-line="10" selection-start-column="42" selection-end-line="10" selection-end-column="42" />
+            <state relative-caret-position="210">
+              <caret line="14" column="40" selection-start-line="14" selection-start-column="40" selection-end-line="14" selection-end-column="40" />
               <folding>
-                <marker date="1563680937234" expanded="true" signature="113:114" ph="..." />
-                <marker date="1563680937234" expanded="true" signature="113:176" ph="..." />
-                <marker date="1563680937234" expanded="true" signature="170:176" ph="..." />
+                <marker date="1563765636932" expanded="true" signature="113:114" ph="..." />
               </folding>
             </state>
           </provider>
@@ -133,8 +141,8 @@
         <option value="$PROJECT_DIR$/density2potential/core/main.py" />
         <option value="$PROJECT_DIR$/density2potential/plot/__init__.p.py" />
         <option value="$PROJECT_DIR$/density2potential/plot/__init__.py" />
-        <option value="$PROJECT_DIR$/density2potential/io/input_file.py" />
         <option value="$PROJECT_DIR$/density2potential/plot/animate.py" />
+        <option value="$PROJECT_DIR$/density2potential/io/input_file.py" />
         <option value="$PROJECT_DIR$/density2potential/core/ks_potential.py" />
       </list>
     </option>
@@ -237,9 +245,9 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
+    <frame x="64" y="-11" width="1857" height="1092" extended-state="6" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.122719735" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.12382532" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -296,9 +304,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/density2potential/plot/__init__.p.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/density2potential/plot/__init__.p.py" />
     <entry file="file://$PROJECT_DIR$/density2potential/plot/__init__.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -311,7 +317,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/density2potential/core/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-9">
+        <state relative-caret-position="15">
           <caret line="3" column="39" selection-start-line="3" selection-start-column="39" selection-end-line="3" selection-end-column="39" />
           <folding>
             <marker date="1563593976902" expanded="true" signature="312:318" ph="..." />
@@ -321,41 +327,41 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/density2potential/io/input_file.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="150">
-          <caret line="10" column="42" selection-start-line="10" selection-start-column="42" selection-end-line="10" selection-end-column="42" />
+        <state relative-caret-position="210">
+          <caret line="14" column="40" selection-start-line="14" selection-start-column="40" selection-end-line="14" selection-end-column="40" />
           <folding>
-            <marker date="1563680937234" expanded="true" signature="113:114" ph="..." />
-            <marker date="1563680937234" expanded="true" signature="113:176" ph="..." />
-            <marker date="1563680937234" expanded="true" signature="170:176" ph="..." />
+            <marker date="1563765636932" expanded="true" signature="113:114" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/density2potential/plot/animate.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="291">
-          <caret line="24" lean-forward="true" selection-start-line="24" selection-end-line="24" />
+        <state>
+          <caret line="62" selection-start-line="62" selection-end-line="62" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
-            <marker date="1563681156236" expanded="true" signature="244:245" ph="..." />
-            <marker date="1563681156236" expanded="true" signature="244:605" ph="..." />
+            <marker date="1563753022643" expanded="true" signature="322:323" ph="..." />
+            <marker date="1563753022643" expanded="true" signature="322:581" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/density2potential/core/ks_potential.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-365">
-          <caret line="91" column="42" selection-start-line="91" selection-start-column="42" selection-end-line="91" selection-end-column="42" />
+        <state relative-caret-position="495">
+          <caret line="56" column="57" selection-start-line="56" selection-start-column="57" selection-end-line="56" selection-end-column="57" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
-            <marker date="1563681351006" expanded="true" signature="423:428" ph="..." />
-            <marker date="1563681351006" expanded="true" signature="2685:2746" ph="..." />
-            <marker date="1563681351006" expanded="true" signature="3957:4365" ph="..." />
-            <marker date="1563681351006" expanded="true" signature="6111:6393" ph="..." />
-            <marker date="1563681351006" expanded="true" signature="6111:6974" ph="..." />
-            <marker date="1563681351006" expanded="true" signature="7003:7008" ph="..." />
-            <marker date="1563681351006" expanded="true" signature="7903:8156" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="359:364" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="4012:4121" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="5572:6350" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="6349:6350" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="8217:8836" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="8890:9119" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="8890:10121" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="10150:10155" ph="..." />
+            <marker date="1563774468264" expanded="true" signature="11089:11342" ph="..." />
           </folding>
         </state>
       </provider>
