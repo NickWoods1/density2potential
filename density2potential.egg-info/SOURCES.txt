@@ -6,9 +6,12 @@ density2potential.egg-info/dependency_links.txt
 density2potential.egg-info/entry_points.txt
 density2potential.egg-info/top_level.txt
 density2potential/core/__init__.py
+density2potential/core/exact.py
 density2potential/core/ks_potential.py
 density2potential/core/main.py
 density2potential/io/__init__.py
 density2potential/io/input_file.py
 density2potential/plot/__init__.py
 density2potential/plot/animate.py
+density2potential/utils/__init__.py
+density2potential/utils/math.py
