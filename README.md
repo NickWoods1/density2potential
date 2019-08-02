@@ -2,8 +2,8 @@
 density2potential
 *****************
 
-`density2potental` is a python package designed to generate a Kohn-Sham
-effective potential that generated a reference density.
+`density2potental` is a python package designed to compute a Kohn-Sham
+effective potential that generates an input reference density.
 
 *************
 Functionality
