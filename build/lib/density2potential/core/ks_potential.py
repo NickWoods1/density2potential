@@ -24,64 +24,12 @@ def generate_ks_potential(params,density_reference):
     density_ks = np.zeros((params.Ntime,params.Nspace))
     wavefunctions_ks = np.zeros((params.Ntime,params.Nspace,params.num_electrons), dtype=complex)
 
-    """
-
-    # Run Rex's v_ks ground state and compare
-    v_ks1 = np.load('VKS.npy')
-    v_ks = np.swapaxes(v_ks1,0,1)
-    hamiltonian = construct_H(params,v_ks[0,:])
-    eigenenergies_ks, eigenfunctions_ks = np.linalg.eigh(hamiltonian)
-    wavefunctions_ks[0,:,0:params.num_electrons] = eigenfunctions_ks[:,0:params.num_electrons]
-    wavefunctions_ks[0,:,0] = normalise_function(params,wavefunctions_ks[0,:,0])
-    wavefunctions_ks[0,:,1] = normalise_function(params,wavefunctions_ks[0,:,1])
-    density_ks[0,:] = np.sum(np.abs(wavefunctions_ks[0,:,:])**2,axis=1,dtype=np.float)
-    error = norm(params,density_ks[0,:] - density_reference[0,:],'MAE')
-    print('MAE of Rexs g.s. v_ks against Rexs density after solution = {}'.format(error))
-
-    plt.plot(density_reference[0,:])
-    plt.plot(density_ks[0,:])
-    plt.plot(0.2*v_ks[0,:])
-    plt.show()
-
-
-    params.dt = 0.016
-
-    # Run rex's TD and compare
-    #test = np.load('psi.npy')
-    #wavefunctions_ks[0,:,0] = test[:,0]
-    #wavefunctions_ks[0,:,1] = test[:,1]
-    wavefunctions_ks[0,:,0:params.num_electrons] = np.load('psi.npy')
-    density_ks = expm_evolve(params,wavefunctions_ks,v_ks,density_ks)
-    animate_two_functions(params,density_reference,density_ks,3,'denrexref','denrex','denme')
-    animate_function(params,v_ks,3,'vksrex','vks')
-    for i in range(1,100):
-        print(norm(params,density_ks[i,:] - density_reference[i,:],'MAE'),i)
-
-
-    """
-
-
-    L = 0.5 * params.space
-    x = np.linspace(-L, L, params.Nspace)
-    v_pert = 0.1 * x
-    v_ext = -4.0 * np.exp(-0.2 * x ** 2)
-
-    """
-    hamiltonian = construct_H(params,v_ext)
-    eigenenergies_ks, eigenfunctions_ks = np.linalg.eigh(hamiltonian)
-    wavefunctions_ks[0, :, 0:params.num_electrons] = eigenfunctions_ks[:, 0:params.num_electrons]
-    wavefunctions_ks[0, :, 0:params.num_electrons] = normalise_function(params,wavefunctions_ks[0, :, 0:params.num_electrons])
-    density_reference[0,:] = np.sum(np.abs(wavefunctions_ks[0,:,:])**2,axis=1,dtype=np.float)
-    """
-
-    v_ks[0,:] = v_ext
-    v_ks[1:,:] = v_ext + v_pert
-
-
-    #density_reference2 = expm_evolve(params,wavefunctions_ks,v_ks,density_ks)
-    #density_reference[1:,:] = density_reference2[1:,:]
-
+    # Initial guess for the Kohn-Sham potential
+    v_ks[0,:] = params.v_ext
+    v_ks[1:,:] = params.v_ext + params.v_pert
     #v_ks += np.random.normal(0.0,0.01,params.Nspace)
+
+    # Compute the ground-state Kohn-Sham potential
     i, error = 0, 1
     while(error > 1e-15):
 
@@ -102,7 +50,6 @@ def generate_ks_potential(params,density_reference):
 
         # Error in the KS density away from the reference density
         error = norm(params,density_ks[0,:] - density_reference[0,:],'MAE')
-        error_rex = norm(params,density_ks[0,:] - density_reference[0,:],'D1')
 
         # Update the KS potential with a steepest descent scheme
         #if error > 1e-10:
@@ -110,107 +57,35 @@ def generate_ks_potential(params,density_reference):
         #else:
         v_ks[0,:] -= 1.0*(density_reference[0,:] - density_ks[0,:])/density_reference[0,:]
 
-        print('Error = {0} or {2} at iteration {1}'.format(error,i,error_rex), end='\r')
+        print('Error = {0} at iteration {1}'.format(error,i), end='\r')
 
         i += 1
 
+    print('Final error in the ground state KS density is {0} after {1} iterations'.format(error,i))
 
-    #opt_info = root(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[:,:],
-    #                                                                  ), method='hybr', options={'ftol':1e-100,'disp':True})
+    """
+    # Compute the ground-state potential using a scipy optimiser
+    opt_info = root(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[:,:],
+                                                                      ), method='hybr', options={'ftol':1e-10,'disp':True})
 
     #opt_info = minimize(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[:,:],
     #                                                                  ), method='SLSQP', options={'disp':True})
 
+    # Output v_ks
+    v_ks[0,:] = opt_info.x
 
-    #v_ks[0,:] = opt_info.x
-
-    #hamiltonian = construct_H(params, v_ks[0, :])
-    #eigenenergies_ks, eigenfunctions_ks = np.linalg.eigh(hamiltonian)
-    #wavefunctions_ks[0, :, 0:params.num_electrons] = eigenfunctions_ks[:, 0:params.num_electrons]
-    #wavefunctions_ks[0, :, 0:params.num_electrons] = normalise_function(params,wavefunctions_ks[0, :, 0:params.num_electrons])
-    #density_ks[0, :] = np.sum(np.abs(wavefunctions_ks[0, :, :]) ** 2, axis=1, dtype=np.float)
-    #error = norm(params, density_ks[0, :] - density_reference[0, :], 'C2')
-    #print('final error {0}, nfev {1}, status {2}'.format(error,opt_info.success,opt_info.success))
-
-    #v_ext = v_ext - np.sum(v_ext) / len(v_ext)
-    #v_ks[0,:] -= np.sum(v_ks[0,:]) / len(v_ks[0,:])
-
-    #v_ks[0,:] -= (v_ks[0,0] - v_ext[0])
-
-    #print('')
-    #print(norm(params,v_ks[0,:] - v_ext,'C1'))
-
-    #plt.plot(v_ext)
-    #plt.plot(v_ks[0,:])
-    #plt.show()
-
-    #plt.plot(v_ext-v_ks[0,:])
-    #plt.show()
-
-    #np.save('initial_wvfns.npy',wavefunctions_ks[0,:,:])
-    #np.save('initial_vks.npy',v_ks[0,:])
-
-    #wavefunctions_ks[0,:,:] = np.load('initial_wvfns.npy')
-
-
-
-    """
-    v_ks1 = np.load('VKS_Vx_0.npy')
-    v_ks1 = np.swapaxes(v_ks1,0,1)
-
-    plt.plot(v_ks1[0,:])
-    plt.plot(v_ks[0,:])
-    plt.show()
-
-    print('')
-    error_final = norm(params,v_ks[0,:] - v_ks1[0,:],'D1')
-    print('Error in initial vks w.r.t rex {}'.format(error_final))
-
-    for i in range(0,100):
-        v_ks[i,:] = v_ks1[i,:]
-
-    animate_function(params,v_ks,3,'vksrex','')
-
-    density_ks = expm_evolve(params,wavefunctions_ks,v_ks,density_ks)
-
-    for i in range(1,params.Ntime):
-        print('error {0} at iterations {1}'.format(norm(params,density_ks[i,:]-density_reference[i,:],'C1'),i))
-
-    animate_two_functions(params,density_ks,density_reference,3,'dencomparerex','me','rex')
-
-
-    print('Final error in the ground state KS density is {0} after {1} iterations'.format(error,i))
-
-    # Time-Dependence
-    # First generate the perturbing potential from exact system as initial guess
-    L = 0.5*params.space
-    x = np.linspace(-L,L,params.Nspace)
-    v_pert = 0.1*x
-    v_ext = -4.0*np.exp(-0.2*x**2)
+    # Compute the corresponding wavefunctions, density, and error
+    hamiltonian = construct_H(params, v_ks[0, :])
+    eigenenergies_ks, eigenfunctions_ks = np.linalg.eigh(hamiltonian)
+    wavefunctions_ks[0, :, 0:params.num_electrons] = eigenfunctions_ks[:, 0:params.num_electrons]
+    wavefunctions_ks[0, :, 0:params.num_electrons] = normalise_function(params,wavefunctions_ks[0, :, 0:params.num_electrons])
+    density_ks[0, :] = np.sum(np.abs(wavefunctions_ks[0, :, :]) ** 2, axis=1, dtype=np.float)
+    error = norm(params, density_ks[0, :] - density_reference[0, :], 'C2')
+    print('Final error = {0} after {1} function evaluations. Status: {2}'.format(error,opt_info.success,opt_info.success))
+   """
 
     # Set initial guess for time-dependent v_ks
-    v_ks[1:,:] = v_ks[0,:] + v_pert[:]
-
-
-    #v_ks = np.load('v_ks_evolved.npy')
-    #density_ks_idea = np.load('density_ks_evolved.npy')
-    #wvfns = np.load('wavefunctions_ks.npy')
-    #wavefunctions_ks[0,:,0] = wvfns[:,0]
-    #wavefunctions_ks[0,:,1] = wvfns[:,1]
-
-    #plt.plot(v_ks[0,:])
-    #plt.plot(v_ks[1,:])
-    #plt.show()
-
-    # Test CN evolution for a given v_ks
-    #density_ks[:,:] = expm_evolve(params,wavefunctions_ks,v_ks,density_ks)
-    #for i in range(1,params.Ntime):
-    #    print('error at iteration {0} is {1}'.format(i,norm(params,density_ks[i,:] - density_ks_idea[i,:],'C2')))
-    #animate_function(params,v_ks,20,'vks_idea','vks_idea')
-    #animate_function(params,density_ks_idea,10,'density_iDEA','ks')
-    #animate_two_functions(params,density_ks,density_ks_idea,30,'compare','My density','iDEA density')
-
-    """
+    v_ks[1:,:] = v_ks[0,:] + params.v_pert
 
     # Optimise the time-dependent KS potential
     for i in range(1,params.Ntime):
@@ -228,12 +103,13 @@ def generate_ks_potential(params,density_reference):
         error = norm(params, density_ks[i,:] - density_reference[i,:], 'MAE')
 
         print('Time step {0}'.format(i))
-        print('MAE in v_ks away from exact {}'.format(norm(params,v_ks[i,:] - v_ext - v_pert,'MAE')))
-        print('Optimiser status = {0} with final error {1} after {2} iterations'.format(opt_info.success,error,opt_info.nfev))
+        print('MAE in Kohn-Sham potential away from exact {}'.format(norm(params,v_ks[i,:] - v_ext - v_pert,'MAE')))
+        print('Optimiser status: {0} with final error = {1} after {2} iterations'.format(opt_info.success,error,opt_info.nfev))
         print('Integrated Kohn-Sham potential = {}'.format(norm(params,v_ks[i,:],'C2')))
         print(' ')
 
-    animate_function(params,v_ks,5,'v_ks','v_ks')
+    # Plot animated Kohn-Sham potential
+    animate_function(params,v_ks,5,'TD_KS_potential','v_ks')
 
     return density_ks, v_ks, wavefunctions_ks
 
@@ -242,12 +118,6 @@ def groundstate_objective_function(v_ks,params,wavefunctions_ks,density_referenc
     r"""
     Ground state objective function, the root of which is the Kohn-Sham potential that generates a ground
     state reference density
-
-    :param v_ks:
-    :param params:
-    :param wavefunctions_ks:
-    :param density_reference:
-    :return:
     """
 
     # Construct Hamiltonian for a given Kohn-Sham potential
@@ -333,14 +203,8 @@ def expm_evolve(params,wavefunctions_ks,v_ks,density_ks):
 
 def crank_nicolson_step(params,v_ks,wavefunctions_ks):
     r"""
-    Solves CN system of linear equations for the evolved wavefunctions
-
+    Solves CN system of linear equations for the evolved wavefunctions:
     (I + 0.5i dt H) psi(t+dt) = (I - 0.5i dt H) psi(t)
-
-    :param params:
-    :param v_ks:
-    :param wavefunctions_ks:
-    :return:
     """
 
     # Create hamiltonian
@@ -361,7 +225,7 @@ def crank_nicolson_step(params,v_ks,wavefunctions_ks):
 
 def crank_nicolson_evolve(params,wavefunctions_ks,v_ks,density_ks):
     r"""
-    Computes a time-dependent wavefunctions and density from a given initial wavefunction and v_ks
+    Computes time-dependent wavefunctions and density from a given initial wavefunction and v_ks
     """
 
     for i in range(1,params.Ntime):
@@ -375,7 +239,6 @@ def crank_nicolson_evolve(params,wavefunctions_ks,v_ks,density_ks):
 def construct_H(params,v_ks):
     r"""
     Constructs the discretised Hamiltonian with an N-point stencil and the given KS potential
-
     """
 
     # Kinetic energy

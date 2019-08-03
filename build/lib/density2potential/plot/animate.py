@@ -23,29 +23,26 @@ def animate_function(params,function,timestep,fig_name,function_name):
     ax.yaxis.set_minor_locator(AutoMinorLocator(4))
     ax.grid(which='both', color='#D3D3D3', fillstyle='full')
     function_plot, = ax.plot([],[],'#0000CD',label='{}'.format(function_name))
-    #function_plot2, = ax.plot([],[],'-r',label='{}'.format(function_name))
     iteration = ax.text(0.02,1.03,'',transform=ax.transAxes)
     ax.legend()
 
     # Figure settings
     def init():
         function_plot.set_data([],[])
-        #function_plot2.set_data([],[])
         iteration.set_text('')
         ax.set_ylim(np.amin(function),np.amax(function))
         ax.set_xlim(np.amin(x),np.amax(x))
         ax.set_xlabel('position (a.u)')
         plt.rcParams.update({'font.size':14})
 
-        return iteration, function_plot,# function_plot2,
+        return iteration, function_plot,
 
     # Function (array) to be animated with the index to animate over (time)
     def animate(time):
-        #function_plot2.set_data(x,function[time,:])
         function_plot.set_data(x,function[time,:])
         iteration.set_text('Iteration: {0}, time = {1} a.u'.format(time,round(time*params.dt,1)))
 
-        return iteration, function_plot,# function_plot2,
+        return iteration, function_plot,
 
     # Array defining the time steps that are sampled
     time_sampling = np.arange(0,params.Ntime,timestep)

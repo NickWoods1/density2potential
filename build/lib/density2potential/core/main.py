@@ -5,8 +5,7 @@ from density2potential.core.ks_potential import generate_ks_potential
 from density2potential.core.exact import solve_ground_state
 
 """
-Main structure: given a density in the form of a 2D array, find the
-corresponding Kohn-Sham potential that generates this density.
+Main hook for the requested action
 """
 
 def main():
@@ -22,7 +21,7 @@ def main():
 
     # Specify arguments that the package can take
     parser.add_argument('--version', action='version', version='This is version {0} of density2potential.'.format(__version__))
-    parser.add_argument('task', help='what do you want density2potential to do: get_vks')
+    parser.add_argument('task', help='what do you want density2potential to do: find-vks, exact')
 
     args = parser.parse_args()
 
@@ -49,6 +48,10 @@ def main():
 
         density_reference = np.load('density_reference.npy')
 
+        # Create parameters object
         params = parameters(density_reference)
 
+        # Solve the TISE for the ground-state wavefunction, density, and energy.
         solve_ground_state(params)
+
+        # Solve the TDSE for the evolved wavefunction and density

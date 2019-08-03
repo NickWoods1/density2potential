@@ -9,7 +9,7 @@ class parameters(object):
 
         # Space
         #self.Nspace = np.ma.size(density_reference,1)
-        self.Nspace = 6
+        self.Nspace = 41
         self.space = kwargs.pop('space',10)
         self.dx = self.space / (self.Nspace-1)
 
@@ -22,12 +22,12 @@ class parameters(object):
         self.num_electrons = kwargs.pop('num_electrons',2)
 
         # Misc.
-        self.stencil = kwargs.pop('stencil',3)
+        self.stencil = kwargs.pop('stencil',5)
 
         # Grid
         self.space_grid = np.linspace(-0.5*self.space, 0.5*self.space, self.Nspace)
         self.time_grid = np.linspace(0,self.time, self.Ntime)
 
         # External potential (time indep and time dep)
-        self.v_ext = 0.5*self.space_grid**2
-        #self.v_ext_td = 0.1*x
+        self.v_ext = 0.5*(0.25**2)*self.space_grid**2
+        self.v_pert = 0.1*self.space_grid**2
