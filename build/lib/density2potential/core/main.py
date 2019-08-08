@@ -1,8 +1,9 @@
 import argparse
 import numpy as np
 from density2potential.io.input_file import parameters
+from density2potential.plot.animate import animate_function, animate_two_functions
 from density2potential.core.ks_potential import generate_ks_potential
-from density2potential.core.exact import solve_ground_state
+from density2potential.core.exact import solve_ground_state, solve_time_dependence
 
 """
 Main hook for the requested action
@@ -46,12 +47,16 @@ def main():
     # Solve exact QM for time-dependent wavefunctions, energies, densities, etc.
     elif args.task == 'exact':
 
-        density_reference = np.load('density_reference.npy')
+        density_reference = np.load('den_idea.npy')
 
         # Create parameters object
         params = parameters(density_reference)
 
         # Solve the TISE for the ground-state wavefunction, density, and energy.
-        solve_ground_state(params)
+        wavefunction, density, energy = solve_ground_state(params)
 
         # Solve the TDSE for the evolved wavefunction and density
+        density = solve_time_dependence(params, wavefunction, density)
+
+        animate_function(params,density,10,'TD_den','density')
+        #animate_two_functions(params,density,density_idea,10,'exact_den','Exact TD Density me','density-idea')

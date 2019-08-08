@@ -41,7 +41,7 @@ def norm(params,function,norm_type):
     elif (norm_type == 'MAE'):
         norm = np.mean(np.abs(function))
     else:
-        raise Exception('Invalid norm type "{0}" used in norm()'.format(norm_type))
+        raise RuntimeError('Invalid norm type "{0}" used in norm()'.format(norm_type))
 
     return norm
 
@@ -53,7 +53,7 @@ def discrete_Laplace(params):
 
     if params.stencil == 3:
         # 3-point stencil for the Laplace operator
-        laplace = -2.0 * np.eye(params.Nspace, dtype=np.float)
+        laplace = -2.0*np.eye(params.Nspace, dtype=np.float)
         laplace += np.diag(np.ones(params.Nspace-1),1) + np.diag(np.ones(params.Nspace-1),-1)
         laplace *= 1.0 / params.dx**2
     elif params.stencil == 5:
@@ -71,6 +71,6 @@ def discrete_Laplace(params):
         laplace += np.diag(-9*np.ones(params.Nspace-4),4) + np.diag(-9*np.ones(params.Nspace-4),-4)
         laplace *= 1.0 / (5040.0 * params.dx**2)
     else:
-        raise Exception('Not a valid stencil')
+        raise RuntimeError('Not a valid stencil')
 
     return laplace

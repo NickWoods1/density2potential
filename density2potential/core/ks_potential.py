@@ -158,7 +158,7 @@ def evolution_objective_function(v_ks,params,wavefunctions_ks,density_reference,
     elif (evolution_type == 'expm'):
         wavefunctions_ks = expm_step(params,v_ks,wavefunctions_ks)
     else:
-        raise Exception('Invalid time evolution method specified')
+        raise RuntimeError('Invalid time evolution method specified')
 
     # Compute evolved density from the evolved wavefunctions
     density_ks = np.sum(abs(wavefunctions_ks[:,:])**2, axis=1)
@@ -174,7 +174,7 @@ def evolution_objective_function(v_ks,params,wavefunctions_ks,density_reference,
     elif (objective_type == 'opt'):
         return error
     else:
-        raise Exception('Not a valid type for the objective function output')
+        raise RuntimeError('Not a valid type for the objective function output')
 
 
 def expm_step(params,v_ks,wavefunctions_ks):
