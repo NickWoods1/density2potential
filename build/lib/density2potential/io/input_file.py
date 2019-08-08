@@ -8,7 +8,7 @@ class parameters(object):
     def __init__(self,density_reference,*args,**kwargs):
 
         # Space
-        self.Nspace = 21 #np.ma.size(density_reference,1)
+        self.Nspace = 61 #(density_reference,1)
         self.space = kwargs.pop('space',10)
         self.dx = self.space / (self.Nspace-1)
 

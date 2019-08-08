@@ -3,11 +3,10 @@ from density2potential.utils.math import discrete_Laplace, norm, normalise_funct
 from density2potential.plot.animate import animate_function
 import matplotlib.pyplot as plt
 import scipy as sp
-from scipy.optimize import minimize
-import time
 
 """
-Solve the exact time-dependent Schrodinger equation in 1D to generate an exact density
+Solve the exact time-independent Schrodinger equation in 1D to generate exact ground state
+density, wavefunction, and energy
 """
 
 def solve_TISE(params):
@@ -18,17 +17,16 @@ def solve_TISE(params):
     # Generate the initial guess wavefunction for the iterative diagonaliser
     # Slater determinant of single-particle wavefunctions
     if params.num_electrons > 1:
-        wavefunction = initial_guess_wavefunction(params, num_excited_states)
+        wavefunction = initial_guess_wavefunction(params)
 
     # Construct the sparse many-body Hamiltonian in an antisymmetric basis
     hamiltonian = construct_H_sparse(params)
 
-    # Add one to diagonal to regularise
+    # Add to diagonal to regularise
     hamiltonian += np.diag(100*np.ones(params.Nspace**2))
 
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
     eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(hamiltonian, 1, which='SM', v0=wavefunction)
-    #eigenenergy_gs, eigenfunction_gs = sp.linalg.eigh(hamiltonian)
 
     # Normalise g.s. eigenfunction
     eigenfunction_gs[:,0] *= (np.sum(eigenfunction_gs[:,0]**2) * params.dx**2)**-0.5
@@ -37,16 +35,16 @@ def solve_TISE(params):
     print('Ground state energy: {0}'.format(eigenenergy_gs[0] + 2.0*params.v_ext_shift - 100))
 
     # Revert to tensor form
-    wavefunction = pack_wavefunction(params,eigenfunction_gs[:,1]).real
+    wavefunction = pack_wavefunction(params,eigenfunction_gs[:, 0]).real
 
     # Compute density
-    density = 2.0 * (np.sum(abs(wavefunction[:,:])**2,axis=0)) * params.dx
+    density = 2.0 * (np.sum(abs(wavefunction[:, :])**2,axis=0)) * params.dx
 
     plt.plot(density)
     plt.show()
 
     np.save('groundstate_density', density)
-    np.save('groundstate_wavefunction',wavefunction)
+    np.save('groundstate_wavefunction', wavefunction)
 
     return wavefunction, density, eigenenergy_gs[0]
 
@@ -115,46 +113,6 @@ def construct_H_sparse(params):
     hamiltonian *= 0.5
 
     return sp.sparse.csr_matrix(hamiltonian)
-
-
-def solve_time_dependence(params, wavefunction, density_gs):
-    r"""
-    Solve the TDSE for a given initial wavefunction, and external potential v(x,t)
-    """
-
-    np.save('TD_external_potential', params.v_ext_td)
-
-    density = np.zeros((params.Ntime,params.Nspace))
-    density[0,:] = density_gs
-
-    if params.time_step_method == 'expm':
-
-        params.v_ext = params.v_ext_td[1,:]
-        hamiltonian = construct_H(params, basis_type='position_antisymmetric')
-        hamiltonian = operator_to_sparse_matrix(params, hamiltonian)
-        for i in range(1,params.Ntime):
-            wavefunction = expm_step(params,wavefunction, hamiltonian)
-            density[i,:] = np.sum(abs(pack_wavefunction(params,wavefunction)[:,:])**2, axis=0)
-            print('Time passed: {}'.format(round(params.time_grid[i],3)))
-
-    elif params.time_step_method == 'CN':
-
-        for i in range(0,params.Ntime):
-            print(i)
-
-    else:
-        raise RuntimeError('Not a valid time-stepping method: {}'.format(params.time_step_method))
-
-    np.save('timedependent_density', density)
-
-    return density
-
-
-def expm_step(params, wavefunction, hamiltonian):
-
-    wavefunction = sp.sparse.linalg.expm_multiply(1.0j*params.dt*hamiltonian, wavefunction)
-
-    return wavefunction
 
 
 def construct_H_dense(params,basis_type):
@@ -280,4 +238,3 @@ def pack_wavefunction(params,wavefunction):
         j += params.Nspace
 
     return wavefunction_packed
-
