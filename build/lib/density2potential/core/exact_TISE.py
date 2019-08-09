@@ -14,6 +14,44 @@ def solve_TISE(params):
     Solves the time-independent Schrodinger equation
     """
 
+    antisymm_expansion, antisymm_reduction = expansion_and_reduction_matrix(params)
+
+
+    # Generate the initial guess wavefunction for the iterative diagonaliser
+    # Slater determinant of single-particle wavefunctions
+    if params.num_electrons > 1:
+        wavefunction = initial_guess_wavefunction(params)
+
+    wavefunction = antisymm_reduction.dot(wavefunction)
+
+
+    # Construct the sparse many-body Hamiltonian in an antisymmetric basis
+    hamiltonian = construct_H_sparse(params)
+
+    H_reduced = hamiltonian.dot(antisymm_expansion)
+    H_reduced = antisymm_reduction.dot(H_reduced)
+
+    # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
+    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(H_reduced, 1, which='SM', v0=wavefunction)
+
+    # Normalise g.s. eigenfunction
+    #eigenfunction_gs[:,0] *= (np.sum(eigenfunction_gs[:,0]**2) * params.dx**2)**-0.5
+
+    # Ground state energy (n.b. undo the potential and regularisation shift)
+    print('Ground state energy: {0}'.format(eigenenergy_gs[0] + 2.0*params.v_ext_shift))
+
+    # Revert to tensor form
+    new = antisymm_expansion.dot(eigenfunction_gs[:,0])
+    wavefunction = pack_wavefunction(params,new).real
+
+    # Compute density
+    density = 2.0 * (np.sum(abs(wavefunction[:, :])**2,axis=0)) * params.dx
+
+    plt.plot(density)
+    plt.show()
+
+
+
     # Generate the initial guess wavefunction for the iterative diagonaliser
     # Slater determinant of single-particle wavefunctions
     if params.num_electrons > 1:
@@ -23,7 +61,7 @@ def solve_TISE(params):
     hamiltonian = construct_H_sparse(params)
 
     # Add to diagonal to regularise
-    hamiltonian += np.diag(100*np.ones(params.Nspace**2))
+    hamiltonian += sp.sparse.csr_matrix(np.diag(100*np.ones(params.Nspace**2)))
 
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
     eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(hamiltonian, 1, which='SM', v0=wavefunction)
@@ -238,3 +276,59 @@ def pack_wavefunction(params,wavefunction):
         j += params.Nspace
 
     return wavefunction_packed
+
+
+def expansion_and_reduction_matrix(params):
+    """
+    Defines the matrix A that when applied to a general wavefunction (phi) gives its antisymmetric
+    compliment (psi): psi = A phi. I.e. given an antisymmetric wavefunction psi, A^-1 psi = phi
+    = the distinct components of psi.
+    """
+
+    # Number of distinct elements of the antisymmetric wavefunction
+    num_distinct_elements = int( params.Nspace*(params.Nspace - 1) / 2 )
+
+
+    # Number of matrix (A) elements required to make the transformation psi_full(x,t) = A*psi_reduced(x,t)
+    col, row, entries = np.zeros(2*num_distinct_elements + 1, dtype=np.int), \
+                        np.zeros(2*num_distinct_elements + 1, dtype=np.int), \
+                        np.ones(2*num_distinct_elements + 1, dtype=np.int)
+
+    # Construct an array (counter) of the relevant (i,j) pairs in order to directly populate sparse matrix
+    counter = np.zeros((num_distinct_elements,2))
+    k = 0
+    for i in range(0,params.Nspace):
+        j = 0
+        while j < i:
+            counter[k,:] = [i,j]
+            j += 1
+            k += 1
+
+    # Occupy col, row, and entries of the sparse matrix
+    k = 0
+    for i in range(0,num_distinct_elements):
+
+        # Extracts the relevant element into (i,j)
+        col[k] = i
+        row[k] = params.Nspace*counter[i,0] + counter[i,1]
+        entries[k] = 1
+
+        # Extracts negative of the relevant element into (j,i)
+        col[k+1] = i
+        row[k+1] = params.Nspace*counter[i,1] + counter[i,0]
+        entries[k+1] = -1
+
+        k += 2
+
+    # Final row of zeros to deal with zeroing of the diagonal
+    col[2*num_distinct_elements] = 0
+    row[2*num_distinct_elements] = params.Nspace**2 - 1
+    entries[2*num_distinct_elements] = 0
+
+    # The sparse matrix that when applied to a wavefunction phi returns its antisymmetric expansion
+    antisymm_expansion = sp.sparse.csr_matrix((entries, (row, col)))
+    # The inverse of the above operation
+    antisymm_reduction = 0.5*antisymm_expansion.getH()
+
+    # Output as a sparse matrix
+    return antisymm_expansion, antisymm_reduction

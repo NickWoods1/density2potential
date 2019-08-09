@@ -8,7 +8,7 @@ class parameters(object):
     def __init__(self,density_reference,*args,**kwargs):
 
         # Space
-        self.Nspace = 61 #(density_reference,1)
+        self.Nspace = 31 #(density_reference,1)
         self.space = kwargs.pop('space',10)
         self.dx = self.space / (self.Nspace-1)
 
@@ -41,7 +41,7 @@ class parameters(object):
         self.v_ext_td = np.zeros((self.Ntime,self.Nspace))
         self.v_ext_td[0,:] = self.v_ext
         for i in range(1,self.Ntime):
-            self.v_ext_td[i,:] = self.v_ext[:] + 0.2*self.space_grid
+            self.v_ext_td[i,:] = self.v_ext[:] + 0.1*self.space_grid
 
         # Method for time-propagation (KS and exact)
-        self.time_step_method = 'expm'
+        self.time_step_method = 'CN'

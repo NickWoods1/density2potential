@@ -7,7 +7,6 @@ density2potential.egg-info/dependency_links.txt
 density2potential.egg-info/entry_points.txt
 density2potential.egg-info/top_level.txt
 density2potential/core/__init__.py
-density2potential/core/exact.py
 density2potential/core/exact_TDSE.py
 density2potential/core/exact_TISE.py
 density2potential/core/ks_potential.py

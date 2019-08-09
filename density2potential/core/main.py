@@ -61,3 +61,13 @@ def main():
 
         animate_function(params,density,10,'TD_den','density')
         #animate_two_functions(params,density,density_idea,10,'exact_den','Exact TD Density me','density-idea')
+
+    elif args.task == 'plot':
+
+        density_reference = np.load('den_idea.npy')
+
+        params = parameters(density_reference)
+
+        den1 = np.load('TD_density.npy')
+        den2 = np.load('TD_densityCN.npy')
+        animate_two_functions(params,den1,den2,5,'compare','expm','CN')
