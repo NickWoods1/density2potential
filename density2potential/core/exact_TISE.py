@@ -16,7 +16,6 @@ def solve_TISE(params):
 
     antisymm_expansion, antisymm_reduction = expansion_and_reduction_matrix(params)
 
-
     # Generate the initial guess wavefunction for the iterative diagonaliser
     # Slater determinant of single-particle wavefunctions
     if params.num_electrons > 1:
@@ -24,33 +23,31 @@ def solve_TISE(params):
 
     wavefunction = antisymm_reduction.dot(wavefunction)
 
-
     # Construct the sparse many-body Hamiltonian in an antisymmetric basis
     hamiltonian = construct_H_sparse(params)
-
     H_reduced = hamiltonian.dot(antisymm_expansion)
     H_reduced = antisymm_reduction.dot(H_reduced)
 
+    #H_reduced += np.diag(100*np.ones(len(wavefunction)))
+
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
-    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(H_reduced, 1, which='SM', v0=wavefunction)
+    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(H_reduced, 1, which='SM', v0=-wavefunction)
+    #eigenenergy_gs, eigenfunction_gs = sp.linalg.eigh(sp.sparse.csr_matrix.todense(H_reduced))#, v0=wavefunction)
+
+    wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
 
     # Normalise g.s. eigenfunction
-    #eigenfunction_gs[:,0] *= (np.sum(eigenfunction_gs[:,0]**2) * params.dx**2)**-0.5
+    wavefunction *= (np.sum(wavefunction[:]**2) * params.dx**2)**-0.5
 
     # Ground state energy (n.b. undo the potential and regularisation shift)
-    print('Ground state energy: {0}'.format(eigenenergy_gs[0] + 2.0*params.v_ext_shift))
+    print('Ground state energy: {0}'.format(np.amin(eigenenergy_gs)))
 
     # Revert to tensor form
-    new = antisymm_expansion.dot(eigenfunction_gs[:,0])
-    wavefunction = pack_wavefunction(params,new).real
+    wavefunction = pack_wavefunction(params,wavefunction).real
 
     # Compute density
     density = 2.0 * (np.sum(abs(wavefunction[:, :])**2,axis=0)) * params.dx
-
     plt.plot(density)
-    plt.show()
-
-
 
     # Generate the initial guess wavefunction for the iterative diagonaliser
     # Slater determinant of single-particle wavefunctions
@@ -70,7 +67,7 @@ def solve_TISE(params):
     eigenfunction_gs[:,0] *= (np.sum(eigenfunction_gs[:,0]**2) * params.dx**2)**-0.5
 
     # Ground state energy (n.b. undo the potential and regularisation shift)
-    print('Ground state energy: {0}'.format(eigenenergy_gs[0] + 2.0*params.v_ext_shift - 100))
+    print('Ground state energy: {0}'.format(eigenenergy_gs[0] - 100))# + 2.0*params.v_ext_shift - 100))
 
     # Revert to tensor form
     wavefunction = pack_wavefunction(params,eigenfunction_gs[:, 0]).real
