@@ -30,8 +30,6 @@ def main():
     args = parser.parse_args()
 
     # Code header
-
-
     print('    ██████╗ ██████╗ ██████╗')
     print('    ██╔══██╗╚════██╗██╔══██╗')
     print('    ██║  ██║ █████╔╝██████╔╝')
@@ -45,19 +43,14 @@ def main():
     print('           Nick Woods')
     print(' ')
 
-
-    # Execute what the user has specified
-
     # Find the Kohn-Sham potential that generates a given reference density
     if args.task == 'find-vks':
 
         # Read in reference density
-        density_reference = np.load('density_reference.npy')
-
-        #density_reference = np.swapaxes(density_reference,0,1)
+        density_reference = np.load('td_density.npy')
 
         # Create parameters object
-        params = parameters(density_reference)
+        params = parameters()
 
         # Generate v_ks
         density_ks, v_ks, wavefunctions_ks = generate_ks_potential(params,density_reference)
@@ -75,7 +68,7 @@ def main():
         pickle.dump(params, params_save)
 
         # Save the external potential for the run
-        np.save('timedependent_external_potential', params.v_ext_td)
+        np.save('td_external_potential', params.v_ext_td)
 
         # Solve the TISE for the ground-state wavefunction, density, and energy.
         print('Solving the TISE...')
@@ -100,11 +93,11 @@ def main():
         print(' ')
 
         # Save time-dependent density
-        np.save('timedependent_density', density)
+        np.save('td_density', density)
 
         # Animate the time-dependent density
         print('Animating output...')
-        animate_function(params, density, 7, 'time-dependent_density','density')
+        animate_function(params, density, 10, 'td_density','density')
         #animate_two_functions(params,density,density_idea,10,'exact_den','Exact TD Density me','density-idea')
         print(' ')
         print(' ')
@@ -120,3 +113,25 @@ def main():
         den2 = np.load('TD_densityCN.npy')
 
         animate_two_functions(params, den1, den2, 5, 'compare_two_densities', 'expm', 'CN')
+
+    elif args.task == 'exact-then-vks':
+
+        # Create parameters object
+        params = parameters()
+
+        # Solve the TISE for the ground-state wavefunction, density, and energy.
+        print('Solving the TISE...')
+        wavefunction, density, energy = solve_TISE(params)
+        print(' ')
+
+        # Solve the TDSE for the evolved wavefunction and density, starting from initial wavefunction
+        print('Solving the TDSE...')
+        density = solve_TDSE(params, wavefunction)
+        print('Time passed: {}'.format(round(params.time,3)))
+        print(' ')
+
+        # Set the reference density as the density computed from the exact calculation
+        density_reference = density
+
+        # Generate v_ks
+        density_ks, v_ks, wavefunctions_ks = generate_ks_potential(params,density_reference)

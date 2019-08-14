@@ -8,7 +8,7 @@ class parameters(object):
     def __init__(self,*args,**kwargs):
 
         # Space
-        self.Nspace = 31
+        self.Nspace = 51
         self.space = kwargs.pop('space',10)
         self.dx = self.space / (self.Nspace-1)
 
@@ -28,8 +28,8 @@ class parameters(object):
         self.time_grid = np.linspace(0, self.time, self.Ntime)
 
         # Ground state external potential (e.g. Gaussian and QHO respectively)
-        #self.v_ext = -4.0 * np.exp(-0.2 * self.space_grid**2)
-        self.v_ext = 0.5*(0.25**2)*self.space_grid**2
+        self.v_ext = -4.0 * np.exp(-0.2 * self.space_grid**2)
+        #self.v_ext = 0.5*(0.25**2)*self.space_grid**2
 
         # Shift the potential such that the eigenvalues are negative
         self.v_ext_shift = abs(2.0*np.amin(self.v_ext))
@@ -38,8 +38,9 @@ class parameters(object):
         # Time dependent external potential
         self.v_ext_td = np.zeros((self.Ntime,self.Nspace))
         self.v_ext_td[0,:] = self.v_ext
+        self.v_pert = -0.1*self.space_grid
         for i in range(1,self.Ntime):
-            self.v_ext_td[i,:] = self.v_ext[:] + 0.1*self.space_grid
+            self.v_ext_td[i,:] = self.v_ext[:] - 0.1*self.space_grid
 
         # Method for time-propagation (KS and exact)
         self.time_step_method = 'expm'

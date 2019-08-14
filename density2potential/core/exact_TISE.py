@@ -48,7 +48,6 @@ def solve_TISE(params):
     # Compute density
     density = calculate_density_exact(params, wavefunction)
 
-
     return wavefunction, density, eigenenergy_gs[0]
 
 

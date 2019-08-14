@@ -31,7 +31,7 @@ def norm(params,function,norm_type):
     """
 
     if (norm_type == 'C2'):
-        norm = (np.sum( np.conj(function[:]) * function[:] )*params.dx**2)**0.5
+        norm = (np.sum( np.conj(function[:]) * function[:] )*params.dx)**0.5
     elif (norm_type == 'D2'):
         norm = np.linalg.norm(function)
     elif (norm_type == 'C1'):

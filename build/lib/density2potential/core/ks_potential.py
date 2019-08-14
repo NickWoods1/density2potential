@@ -25,13 +25,13 @@ def generate_ks_potential(params,density_reference):
     wavefunctions_ks = np.zeros((params.Ntime,params.Nspace,params.num_electrons), dtype=complex)
 
     # Initial guess for the Kohn-Sham potential
-    v_ks[0,:] = params.v_ext
+    v_ks[0,:] = 0#params.v_ext - params.v_ext_shift
     v_ks[1:,:] = params.v_ext + params.v_pert
     #v_ks += np.random.normal(0.0,0.01,params.Nspace)
 
     # Compute the ground-state Kohn-Sham potential
     i, error = 0, 1
-    while(error > 1e-15):
+    while(error > 1e-7):
 
         # Construct Hamiltonian for a given Kohn-Sham potential
         hamiltonian = construct_H(params,v_ks[0,:])
@@ -51,11 +51,17 @@ def generate_ks_potential(params,density_reference):
         # Error in the KS density away from the reference density
         error = norm(params,density_ks[0,:] - density_reference[0,:],'MAE')
 
+        if i % 1000 == 0:
+            plt.plot(v_ks[0,:])
+            plt.plot(density_reference[0,:])
+            plt.plot(density_ks[0,:])
+            plt.show()
+
         # Update the KS potential with a steepest descent scheme
         #if error > 1e-10:
-        #    v_ks[0,:] -= 1*(density_reference[0,:]**0.05 - density_ks[0,:]**0.05)#/ density_reference[0,:]
+        v_ks[0,:] -= 1*(density_reference[0,:]**0.05 - density_ks[0,:]**0.05)#/ density_reference[0,:]
         #else:
-        v_ks[0,:] -= 1.0*(density_reference[0,:] - density_ks[0,:])/density_reference[0,:]
+        #v_ks[0,:] -= 0.1*(density_reference[0,:] - density_ks[0,:]) #/density_reference[0,:]
 
         print('Error = {0} at iteration {1}'.format(error,i), end='\r')
 
@@ -92,7 +98,7 @@ def generate_ks_potential(params,density_reference):
 
         # Find the v_ks that minimises the specified objective function
         opt_info = root(evolution_objective_function,v_ks[i,:],args=(params,wavefunctions_ks[i-1,:,:],density_reference[i,:],
-                                                                     'root', 'CN'), method='hybr',options={'maxiter':10000})
+                                                                     'root', 'expm'), method='hybr',options={'maxiter':10000})
         # Final Kohn-Sham potential
         v_ks[i,:] = opt_info.x
 
@@ -103,7 +109,7 @@ def generate_ks_potential(params,density_reference):
         error = norm(params, density_ks[i,:] - density_reference[i,:], 'MAE')
 
         print('Time step {0}'.format(i))
-        print('MAE in Kohn-Sham potential away from exact {}'.format(norm(params,v_ks[i,:] - v_ext - v_pert,'MAE')))
+        #print('MAE in Kohn-Sham potential away from exact {}'.format(norm(params,v_ks[i,:] - v_ext - v_pert,'MAE')))
         print('Optimiser status: {0} with final error = {1} after {2} iterations'.format(opt_info.success,error,opt_info.nfev))
         print('Integrated Kohn-Sham potential = {}'.format(norm(params,v_ks[i,:],'C2')))
         print(' ')

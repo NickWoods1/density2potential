@@ -15,7 +15,6 @@ def solve_TDSE(params, wavefunction_initial):
     Solves the time-dependent Schrodinger equation given an initial wavefunction and external potential v(x,t)
     """
 
-
     # Initilise density
     density = np.zeros((params.Ntime,params.Nspace))
     density[0,:] = calculate_density_exact(params, wavefunction_initial)
@@ -24,6 +23,7 @@ def solve_TDSE(params, wavefunction_initial):
     # Time stepping defined by numpy's expm function
     if params.time_step_method == 'expm':
 
+        # Construct the perturbed hamiltonian
         params.v_ext = params.v_ext_td[1,:]
         hamiltonian = construct_H_sparse(params, basis_type='position')
 
@@ -84,6 +84,9 @@ def solve_TDSE(params, wavefunction_initial):
 
 
 def expm_step(params, wavefunction, hamiltonian):
+    r"""
+    Update wavefunction based on numpy's expm function psi(t+dt) = e^iHt psi(t)
+    """
 
     wavefunction = sp.sparse.linalg.expm_multiply(1.0j*params.dt*hamiltonian, wavefunction)
 
