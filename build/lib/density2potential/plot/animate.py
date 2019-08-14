@@ -42,6 +42,8 @@ def animate_function(params,function,timestep,fig_name,function_name):
         function_plot.set_data(x,function[time,:])
         iteration.set_text('Iteration: {0}, time = {1} a.u'.format(time,round(time*params.dt,1)))
 
+        print('Percent completed: {}%'.format(round(100*(time+timestep) / params.Ntime,3)), end='\r')
+
         return iteration, function_plot,
 
     # Array defining the time steps that are sampled
@@ -88,6 +90,8 @@ def animate_two_functions(params,function1,function2,timestep,fig_name,function1
         function2_plot.set_data(x,function2[time,:])
         function1_plot.set_data(x,function1[time,:])
         iteration.set_text('Iteration: {0}, time = {1} a.u'.format(time,round(time*params.dt,1)))
+
+        print('Percent completed: {}'.format(round(100*(time+timestep) / params.Ntime,3)), end='\r')
 
         return iteration, function1_plot, function2_plot,
 

@@ -1,5 +1,5 @@
 import numpy as np
-from density2potential.utils.math import discrete_Laplace, norm, normalise_function
+from density2potential.utils.math import discrete_Laplace, norm, normalise_function, calculate_density_exact
 from density2potential.plot.animate import animate_function
 import matplotlib.pyplot as plt
 import scipy as sp
@@ -14,6 +14,8 @@ def solve_TISE(params):
     Solves the time-independent Schrodinger equation
     """
 
+    # Construct the antisymmetry operator A (and its inverse) s.t. psi = A phi for psi antisymmetric
+    # expansion of phi, which holds the unique components of psi.
     antisymm_expansion, antisymm_reduction = expansion_and_reduction_matrix(params)
 
     # Generate the initial guess wavefunction for the iterative diagonaliser
@@ -21,65 +23,31 @@ def solve_TISE(params):
     if params.num_electrons > 1:
         wavefunction = initial_guess_wavefunction(params)
 
+    # Reduce to unique components
     wavefunction = antisymm_reduction.dot(wavefunction)
 
-    # Construct the sparse many-body Hamiltonian in an antisymmetric basis
-    hamiltonian = construct_H_sparse(params)
+    # Construct the sparse many-body Hamiltonian directly in an antisymmetric basis
+    hamiltonian = construct_H_sparse(params, basis_type='position')
+
+    # Perform the transformation U^T H U = H': project out the antisymmetric subspace of H
     H_reduced = hamiltonian.dot(antisymm_expansion)
     H_reduced = antisymm_reduction.dot(H_reduced)
 
-    #H_reduced += np.diag(100*np.ones(len(wavefunction)))
-
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
     eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(H_reduced, 1, which='SM', v0=-wavefunction)
-    #eigenenergy_gs, eigenfunction_gs = sp.linalg.eigh(sp.sparse.csr_matrix.todense(H_reduced))#, v0=wavefunction)
 
+    # Expand to full antisymmetric solution
     wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
 
-    # Normalise g.s. eigenfunction
+    # Normalise the eigenfunction
     wavefunction *= (np.sum(wavefunction[:]**2) * params.dx**2)**-0.5
 
-    # Ground state energy (n.b. undo the potential and regularisation shift)
-    print('Ground state energy: {0}'.format(np.amin(eigenenergy_gs)))
-
-    # Revert to tensor form
-    wavefunction = pack_wavefunction(params,wavefunction).real
+    # Ground state energy (n.b. undo the potential shift)
+    print('Ground state energy: {0}'.format(np.amin(eigenenergy_gs) - 2*params.v_ext_shift))
 
     # Compute density
-    density = 2.0 * (np.sum(abs(wavefunction[:, :])**2,axis=0)) * params.dx
-    plt.plot(density)
+    density = calculate_density_exact(params, wavefunction)
 
-    # Generate the initial guess wavefunction for the iterative diagonaliser
-    # Slater determinant of single-particle wavefunctions
-    if params.num_electrons > 1:
-        wavefunction = initial_guess_wavefunction(params)
-
-    # Construct the sparse many-body Hamiltonian in an antisymmetric basis
-    hamiltonian = construct_H_sparse(params)
-
-    # Add to diagonal to regularise
-    hamiltonian += sp.sparse.csr_matrix(np.diag(100*np.ones(params.Nspace**2)))
-
-    # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
-    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(hamiltonian, 1, which='SM', v0=wavefunction)
-
-    # Normalise g.s. eigenfunction
-    eigenfunction_gs[:,0] *= (np.sum(eigenfunction_gs[:,0]**2) * params.dx**2)**-0.5
-
-    # Ground state energy (n.b. undo the potential and regularisation shift)
-    print('Ground state energy: {0}'.format(eigenenergy_gs[0] - 100))# + 2.0*params.v_ext_shift - 100))
-
-    # Revert to tensor form
-    wavefunction = pack_wavefunction(params,eigenfunction_gs[:, 0]).real
-
-    # Compute density
-    density = 2.0 * (np.sum(abs(wavefunction[:, :])**2,axis=0)) * params.dx
-
-    plt.plot(density)
-    plt.show()
-
-    np.save('groundstate_density', density)
-    np.save('groundstate_wavefunction', wavefunction)
 
     return wavefunction, density, eigenenergy_gs[0]
 
@@ -96,28 +64,28 @@ def initial_guess_wavefunction(params):
     hamiltonian = construct_H_dense(params, basis_type='position')
 
     # Find two lowest lying eigenfunctions and normalise (L2)
-    eigenenergy, eigenfunction = sp.sparse.linalg.eigsh(hamiltonian,2)
+    eigenenergy, eigenfunction = sp.linalg.eigh(hamiltonian)
 
-    # Init many-body wavefunction and construct as a Slater determinant of single-particle eigenfunctions
-    wavefunction = pack_wavefunction(params,np.zeros(params.Nspace**2))
-    for i in range(0,params.Nspace):
-        for j in range(0,params.Nspace):
-            wavefunction[i,j] += (1 / np.sqrt(2)) * (np.conj(eigenfunction[i,0])*eigenfunction[j,1] - np.conj(eigenfunction[i,1])*eigenfunction[j,0])
+    # Construct the Slater determinant of lowest eigenvalues
+    wavefunction = np.zeros((params.Nspace**2))
+    for j in range(0,params.Nspace):
+        for i in range(0,params.Nspace):
+            wavefunction[params.Nspace*i + j] += np.conj(eigenfunction[i,0])*eigenfunction[j,1] - np.conj(eigenfunction[i,1])*eigenfunction[j,0]
 
-    wavefunction = unpack_wavefunction(params,wavefunction)
     params.num_electrons = 2
 
     return wavefunction.real
 
 
-def construct_H_sparse(params):
+def construct_H_sparse(params, basis_type):
     r"""
-    Constructs the Hamiltonian directly in sparse form using an antisymmetric delta function (position) basis
+    Constructs the Hamiltonian directly in sparse form using an (anti)-symmetric delta function (position) basis
     """
 
+    # Init the potential, laplacian, and hamiltonian
+    hamiltonian = 0
     potential = np.zeros((params.Nspace,params.Nspace))
     laplace = discrete_Laplace(params)
-    hamiltonian = np.zeros((params.Nspace**2,params.Nspace**2))
 
     # Construct local potential matrix
     for i in range(0,params.Nspace):
@@ -129,32 +97,82 @@ def construct_H_sparse(params):
             # Add external
             potential[i,j] += params.v_ext[i] + params.v_ext[j]
 
-    # Construct Hamiltonian as KE + V
-    for i in range(0,params.Nspace):
-        for j in range(0,params.Nspace):
+    if basis_type == 'position':
 
-            # Add potential term (V)
-            hamiltonian[i * params.Nspace + j, j * params.Nspace + i] -= potential[i,j]
-            hamiltonian[i * params.Nspace + j, i * params.Nspace + j] += potential[i,j]
+        # Number of distinct elements of the antisymmetric wavefunction
+        num_distinct_elements = int(params.Nspace**2)
+        for i in range(1,params.stencil-1):
+            num_distinct_elements += int(4*params.Nspace*(params.Nspace - i))
 
-            for k in range(0,params.Nspace):
+        # Number of matrix (A) elements required to make the transformation psi_full(x,t) = A*psi_reduced(x,t)
+        col, row, entries = np.zeros(num_distinct_elements, dtype=np.int), \
+                            np.zeros(num_distinct_elements, dtype=np.int), \
+                            np.zeros(num_distinct_elements)
 
-                # Add (non-local) kinetic term (KE)
-                hamiltonian[i*params.Nspace + j,i*params.Nspace+k] += -0.5*laplace[j,k]
-                hamiltonian[j*params.Nspace + i,k*params.Nspace+i] += -0.5*laplace[j,k]
-                hamiltonian[i*params.Nspace + j,k*params.Nspace+i] -= -0.5*laplace[j,k]
-                hamiltonian[j*params.Nspace + i,i*params.Nspace+k] -= -0.5*laplace[j,k]
+        # Construct Hamiltonian as KE + V
+        counter = 0
+        for i in range(0,params.Nspace):
+            for j in range(0,params.Nspace):
 
-    hamiltonian *= 0.5
+                # Add local potential, and local part of K.E. operator
+                col[counter] += i*params.Nspace + j
+                row[counter] += i*params.Nspace + j
+                entries[counter] += potential[i,j] - laplace[i,i]
+                counter += 1
 
-    return sp.sparse.csr_matrix(hamiltonian)
+                # Add non-local part of K.E. operator
+                for k in range(j-(params.stencil-2),j+(params.stencil-1)):
+                    if j != k and k >= 0 and k < params.Nspace:
+
+                        col[counter] += i*params.Nspace + j
+                        row[counter] += i*params.Nspace + k
+                        entries[counter] += -0.5*laplace[j,k]
+                        counter += 1
+
+                        col[counter] += j*params.Nspace + i
+                        row[counter] += k*params.Nspace + i
+                        entries[counter] += -0.5*laplace[j,k]
+                        counter += 1
+
+        hamiltonian = sp.sparse.csr_matrix((entries, (row, col)))
+
+    elif basis_type == 'position_antisymmetric':
+
+        # Init H
+        hamiltonian = np.zeros((params.Nspace**2,params.Nspace**2))
+
+        # Construct Hamiltonian as KE + V
+        for i in range(0,params.Nspace):
+            for j in range(0,params.Nspace):
+
+                # Add potential term (V)
+                hamiltonian[i * params.Nspace + j, j * params.Nspace + i] -= potential[i,j]
+                hamiltonian[i * params.Nspace + j, i * params.Nspace + j] += potential[i,j]
+
+                for k in range(0,params.Nspace):
+
+                    # Add (non-local) kinetic term (KE)
+                    hamiltonian[i*params.Nspace + j,i*params.Nspace+k] += -0.5*laplace[j,k]
+                    hamiltonian[j*params.Nspace + i,k*params.Nspace+i] += -0.5*laplace[j,k]
+                    hamiltonian[i*params.Nspace + j,k*params.Nspace+i] -= -0.5*laplace[j,k]
+                    hamiltonian[j*params.Nspace + i,i*params.Nspace+k] -= -0.5*laplace[j,k]
+
+        hamiltonian = sp.sparse.csr_matrix(0.5*hamiltonian)
+
+    return hamiltonian
 
 
 def construct_H_dense(params,basis_type):
     r"""
     Constructs the (dense) Hamiltonian in a delta function basis (tensor form) for an N particle system.
     Position space basis (basis_type = position) or (basis_type =)position_antisymmetric -- delta function.
+
+    N.b. if antisymmetric delta function basis is used, consider shifting the external potential to be entirely
+    negative
     """
+
+    # Store Laplacian stencil for kinetic energy operator
+    laplace = discrete_Laplace(params)
 
     if params.num_electrons == 1:
 
@@ -162,7 +180,7 @@ def construct_H_dense(params,basis_type):
         hamiltonian = np.zeros((params.Nspace,params.Nspace))
 
         # Kinetic energy
-        hamiltonian[:,:] += -0.5*discrete_Laplace(params)
+        hamiltonian[:,:] += -0.5*laplace
 
         # External potential
         hamiltonian[:,:] += np.diag(params.v_ext)
@@ -176,8 +194,8 @@ def construct_H_dense(params,basis_type):
 
             # Kinetic energy
             for i in range(0,params.Nspace):
-                hamiltonian[i,:,i,:] += -0.5*discrete_Laplace(params)
-                hamiltonian[:,i,:,i] += -0.5*discrete_Laplace(params)
+                hamiltonian[i,:,i,:] += -0.5*laplace
+                hamiltonian[:,i,:,i] += -0.5*laplace
 
             for j in range(0,params.Nspace):
                 for i in range(0,params.Nspace):
@@ -191,14 +209,15 @@ def construct_H_dense(params,basis_type):
         # Add components corresponding to the antisymmetric parts of the basis
         elif basis_type == 'position_antisymmetric':
 
-            laplace = discrete_Laplace(params)
+            print('Warning: antisymmetric position basis used.')
+            print('Consider shifting potential to be entirely negative for stability.')
 
             # Kinetic energy
             for i in range(0,params.Nspace):
-                hamiltonian[i,:,i,:] += -0.5*laplace[:,:]
-                hamiltonian[:,i,:,i] += -0.5*laplace[:,:]
-                hamiltonian[i,:,:,i] -= -0.5*laplace[:,:]
-                hamiltonian[:,i,i,:] -= -0.5*laplace[:,:]
+                hamiltonian[i,:,i,:] += -0.5*laplace
+                hamiltonian[:,i,:,i] += -0.5*laplace
+                hamiltonian[i,:,:,i] -= -0.5*laplace
+                hamiltonian[:,i,i,:] -= -0.5*laplace
 
             for j in range(0,params.Nspace):
                 for i in range(0,params.Nspace):
@@ -218,7 +237,7 @@ def construct_H_dense(params,basis_type):
     return hamiltonian
 
 
-def dense_to_sparse(params,hamiltonian):
+def hamiltonian_dense_to_sparse(params,hamiltonian):
     r"""
     Takes a hamiltonian (in dense tensor form) and converts it to a csr (scipy) sparse matrix
     """
@@ -277,14 +296,13 @@ def pack_wavefunction(params,wavefunction):
 
 def expansion_and_reduction_matrix(params):
     """
-    Defines the matrix A that when applied to a general wavefunction (phi) gives its antisymmetric
+    Defines the (sparse) matrix A that when applied to a general wavefunction (phi) gives its antisymmetric
     compliment (psi): psi = A phi. I.e. given an antisymmetric wavefunction psi, A^-1 psi = phi
     = the distinct components of psi.
     """
 
     # Number of distinct elements of the antisymmetric wavefunction
-    num_distinct_elements = int( params.Nspace*(params.Nspace - 1) / 2 )
-
+    num_distinct_elements = int(params.Nspace*(params.Nspace - 1) / 2)
 
     # Number of matrix (A) elements required to make the transformation psi_full(x,t) = A*psi_reduced(x,t)
     col, row, entries = np.zeros(2*num_distinct_elements + 1, dtype=np.int), \
@@ -324,7 +342,8 @@ def expansion_and_reduction_matrix(params):
 
     # The sparse matrix that when applied to a wavefunction phi returns its antisymmetric expansion
     antisymm_expansion = sp.sparse.csr_matrix((entries, (row, col)))
-    # The inverse of the above operation
+
+    # The inverse of the above operation (unitary, so inverse is transpose)
     antisymm_reduction = 0.5*antisymm_expansion.getH()
 
     # Output as a sparse matrix

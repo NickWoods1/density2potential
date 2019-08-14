@@ -13,5 +13,5 @@ setup(
     author_email = 'nw361@cam.ac.uk',
     url = "http://www.tcm.phy.cam.ac.uk/profiles/nw361/",
     packages = find_packages(),
-    entry_points={ 'console_scripts': 'density2potential = density2potential.core.main:main' },
+    entry_points={ 'console_scripts': 'd2p = density2potential.core.main:main' },
 )

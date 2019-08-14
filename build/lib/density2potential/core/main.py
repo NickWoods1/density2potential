@@ -1,5 +1,7 @@
 import argparse
 import numpy as np
+import pickle
+import matplotlib.pyplot as plt
 from density2potential.io.input_file import parameters
 from density2potential.plot.animate import animate_function, animate_two_functions
 from density2potential.core.ks_potential import generate_ks_potential
@@ -27,6 +29,23 @@ def main():
 
     args = parser.parse_args()
 
+    # Code header
+
+
+    print('    ██████╗ ██████╗ ██████╗')
+    print('    ██╔══██╗╚════██╗██╔══██╗')
+    print('    ██║  ██║ █████╔╝██████╔╝')
+    print('    ██║  ██║██╔═══╝ ██╔═══╝')
+    print('    ██████╔╝███████╗██║')
+    print('    ╚═════╝ ╚══════╝╚═╝')
+    print('    ------------------------')
+    print('       density2potential')
+    print('    ------------------------')
+    print('           Written by')
+    print('           Nick Woods')
+    print(' ')
+
+
     # Execute what the user has specified
 
     # Find the Kohn-Sham potential that generates a given reference density
@@ -48,26 +67,56 @@ def main():
     # Solve exact QM for time-dependent wavefunctions, energies, densities, etc.
     elif args.task == 'exact':
 
-        density_reference = np.load('den_idea.npy')
-
         # Create parameters object
-        params = parameters(density_reference)
+        params = parameters()
+
+        # Save the parameters object for the run
+        params_save = open('params.obj', 'wb')
+        pickle.dump(params, params_save)
+
+        # Save the external potential for the run
+        np.save('timedependent_external_potential', params.v_ext_td)
 
         # Solve the TISE for the ground-state wavefunction, density, and energy.
+        print('Solving the TISE...')
         wavefunction, density, energy = solve_TISE(params)
+        print(' ')
 
-        # Solve the TDSE for the evolved wavefunction and density
+        # Plot ground state quantities
+        plt.plot(density, label='Ground state density')
+        plt.plot(params.v_ext - np.amin(params.v_ext), label='External potential')
+        plt.title('Ground state energy = {} a.u.'.format(energy))
+        plt.legend()
+        plt.savefig('groundstate_den_and_vext.pdf')
+
+        # Save wavefunction and density
+        np.save('groundstate_density', density)
+        np.save('groundstate_wavefunction', wavefunction)
+
+        # Solve the TDSE for the evolved wavefunction and density, starting from initial wavefunction
+        print('Solving the TDSE...')
         density = solve_TDSE(params, wavefunction)
+        print('Time passed: {}'.format(round(params.time,3)))
+        print(' ')
 
-        animate_function(params,density,10,'TD_den','density')
+        # Save time-dependent density
+        np.save('timedependent_density', density)
+
+        # Animate the time-dependent density
+        print('Animating output...')
+        animate_function(params, density, 7, 'time-dependent_density','density')
         #animate_two_functions(params,density,density_idea,10,'exact_den','Exact TD Density me','density-idea')
+        print(' ')
+        print(' ')
 
+        print('Finished successfully')
+
+    # Plot files generated prior
     elif args.task == 'plot':
 
-        density_reference = np.load('den_idea.npy')
-
-        params = parameters(density_reference)
+        params = parameters()
 
         den1 = np.load('TD_density.npy')
         den2 = np.load('TD_densityCN.npy')
-        animate_two_functions(params,den1,den2,5,'compare','expm','CN')
+
+        animate_two_functions(params, den1, den2, 5, 'compare_two_densities', 'expm', 'CN')

@@ -1,3 +1,3 @@
 [console_scripts]
-density2potential = density2potential.core.main:main
+d2p = density2potential.core.main:main
 

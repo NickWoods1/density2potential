@@ -31,7 +31,7 @@ def norm(params,function,norm_type):
     """
 
     if (norm_type == 'C2'):
-        norm = (np.sum( np.conj(function[:]) * function[:] )*params.dx)**0.5
+        norm = (np.sum( np.conj(function[:]) * function[:] )*params.dx**2)**0.5
     elif (norm_type == 'D2'):
         norm = np.linalg.norm(function)
     elif (norm_type == 'C1'):
@@ -74,3 +74,26 @@ def discrete_Laplace(params):
         raise RuntimeError('Not a valid stencil')
 
     return laplace
+
+
+def calculate_density_exact(params, wavefunction):
+    r"""
+    Calculates the electron density given a wavefunction under the coordinate mapping: (x_1, x_2, ... x_N) ---> x
+    used in this package.
+    """
+
+    density = np.zeros((params.Nspace))
+
+    if params.num_electrons == 1:
+
+        density[:] = np.sum(abs(wavefunction[:])**2) * params.dx
+
+    elif params.num_electrons == 2:
+
+        for i in range(0,params.Nspace):
+            l_bound = int(params.Nspace*i)
+            u_bound = int(params.Nspace*(i + 1) - 1)
+            density[i] = 2.0 * np.sum(abs(wavefunction[l_bound:u_bound])**2) * params.dx
+
+    return density
+
