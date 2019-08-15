@@ -2,8 +2,10 @@ import numpy as np
 from scipy.optimize import root,minimize
 import matplotlib.pyplot as plt
 from density2potential.plot.animate import animate_function, animate_two_functions
-from density2potential.utils.math import norm, normalise_function, discrete_Laplace
+from density2potential.utils.math import norm, normalise_function, discrete_Laplace, calculate_density_exact
+from density2potential.core.exact_TISE import construct_H_dense
 from scipy.linalg import expm
+import scipy as sp
 
 """
 Functions that contain the core functionality to find a Kohn-Sham potential given a density
@@ -25,45 +27,47 @@ def generate_ks_potential(params,density_reference):
     wavefunctions_ks = np.zeros((params.Ntime,params.Nspace,params.num_electrons), dtype=complex)
 
     # Initial guess for the Kohn-Sham potential
-    v_ks[0,:] = 0#params.v_ext - params.v_ext_shift
+    v_ks[0,:] = 0#0.5*(0.25**2)*params.space_grid**2 - params.v_ext_shift#params.v_ext - params.v_ext_shift
     v_ks[1:,:] = params.v_ext + params.v_pert
     #v_ks += np.random.normal(0.0,0.01,params.Nspace)
 
     # Compute the ground-state Kohn-Sham potential
     i, error = 0, 1
-    while(error > 1e-7):
+    while(error > 1e-19):
 
         # Construct Hamiltonian for a given Kohn-Sham potential
         hamiltonian = construct_H(params,v_ks[0,:])
 
         # Find eigenvectors and eigenvalues of this Hamiltonian
-        eigenenergies_ks, eigenfunctions_ks = np.linalg.eigh(hamiltonian)
+        eigenenergies_ks, eigenfunctions_ks = sp.linalg.eigh(hamiltonian)
 
         # Store the lowest N_electron eigenfunctions as wavefunctions
         wavefunctions_ks[0,:,0:params.num_electrons] = eigenfunctions_ks[:,0:params.num_electrons]
 
         # Normalise the wavefunctions w.r.t the continous L2 norm
-        wavefunctions_ks[0,:,0:params.num_electrons] = normalise_function(params,wavefunctions_ks[0,:,0:params.num_electrons])
+        wavefunctions_ks[0,:,0] = eigenfunctions_ks[:,0]*(np.sum(eigenfunctions_ks[:,0]**2) * params.dx)**-0.5
 
         # Construct KS density
-        density_ks[0,:] = np.sum(np.abs(wavefunctions_ks[0,:,:])**2,axis=1,dtype=np.float)
+        density_ks[0,:] = calculate_density_exact(params, wavefunctions_ks[0,:,0])
 
         # Error in the KS density away from the reference density
         error = norm(params,density_ks[0,:] - density_reference[0,:],'MAE')
 
-        if i % 1000 == 0:
-            plt.plot(v_ks[0,:])
-            plt.plot(density_reference[0,:])
-            plt.plot(density_ks[0,:])
-            plt.show()
+        #if i % 1000 == 0:
+        #    plt.plot(0.5*(0.25**2)*params.space_grid**2)
+        #    plt.plot(v_ks[0,:])
+         #   plt.plot(density_reference[0,:])
+        #    plt.plot(density_ks[0,:])
+        #    plt.show()
 
         # Update the KS potential with a steepest descent scheme
         #if error > 1e-10:
-        v_ks[0,:] -= 1*(density_reference[0,:]**0.05 - density_ks[0,:]**0.05)#/ density_reference[0,:]
+        #v_ks[0,:] -= 1*(density_reference[0,:]**0.05 - density_ks[0,:]**0.05)#/ density_reference[0,:]
         #else:
-        #v_ks[0,:] -= 0.1*(density_reference[0,:] - density_ks[0,:]) #/density_reference[0,:]
+        v_ks[0,:] -= 0.1*(density_reference[0,:] - density_ks[0,:]) / density_reference[0,:]
+        error_vks = norm(params, v_ks[0, :] - params.v_ext, 'MAE')
 
-        print('Error = {0} at iteration {1}'.format(error,i), end='\r')
+        print('Error = {0} at iteration {1} errro2 {2}'.format(error,i,error_vks), end='\r')
 
         i += 1
 

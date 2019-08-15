@@ -4,6 +4,7 @@ import numpy as np
 Various Math Utilities
 """
 
+
 def normalise_function(params, function):
     r"""
     Normalise a function using the continuum L2 norm
@@ -18,7 +19,7 @@ def normalise_function(params, function):
     return function
 
 
-def norm(params,function,norm_type):
+def norm(params, function, norm_type):
     r"""
     Computes the norm of an input function
 
@@ -86,7 +87,7 @@ def calculate_density_exact(params, wavefunction):
 
     if params.num_electrons == 1:
 
-        density[:] = np.sum(abs(wavefunction[:])**2) * params.dx
+        density[:] = abs(wavefunction[:])**2
 
     elif params.num_electrons == 2:
 

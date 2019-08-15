@@ -14,14 +14,35 @@ def solve_TISE(params):
     Solves the time-independent Schrodinger equation
     """
 
-    # Construct the antisymmetry operator A (and its inverse) s.t. psi = A phi for psi antisymmetric
-    # expansion of phi, which holds the unique components of psi.
+    # Deal with single-particle case separately as it is significantly more simple
+    if params.num_electrons == 1:
+
+        # Construct single-particle H
+        hamiltonian = construct_H_dense(params, basis_type='position')
+
+        # Find spectrum of the single-particle H
+        eigenenergy, eigenfunction = sp.linalg.eigh(hamiltonian)
+
+        # Noramise wavefunction
+        wavefunction = eigenfunction[:,0]*(np.sum(eigenfunction[:,0]**2) * params.dx)**-0.5
+
+        # Ground state energy (n.b. undo the potential shift)
+        eigenenergy = np.amin(eigenenergy) - params.num_electrons*params.v_ext_shift
+        print('Ground state energy: {0}'.format(eigenenergy))
+
+        # Compute density
+        density = calculate_density_exact(params, wavefunction)
+
+        return wavefunction, density, eigenenergy
+
+    # Deal with N > 1 case
+
+    # Antisymmetry operator A and A^-1 s.t. psi = A phi, for psi antisymmetric, phi distinct elements of psi
     antisymm_expansion, antisymm_reduction = expansion_and_reduction_matrix(params)
 
     # Generate the initial guess wavefunction for the iterative diagonaliser
-    # Slater determinant of single-particle wavefunctions
-    if params.num_electrons > 1:
-        wavefunction = initial_guess_wavefunction(params)
+    # as a Slater determinant of single-particle wavefunctions
+    wavefunction = initial_guess_wavefunction(params)
 
     # Reduce to unique components
     wavefunction = antisymm_reduction.dot(wavefunction)
@@ -30,11 +51,11 @@ def solve_TISE(params):
     hamiltonian = construct_H_sparse(params, basis_type='position')
 
     # Perform the transformation U^T H U = H': project out the antisymmetric subspace of H
-    H_reduced = hamiltonian.dot(antisymm_expansion)
-    H_reduced = antisymm_reduction.dot(H_reduced)
+    hamiltonian = hamiltonian.dot(antisymm_expansion)
+    hamiltonian = antisymm_reduction.dot(hamiltonian)
 
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
-    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(H_reduced, 1, which='SM', v0=-wavefunction)
+    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(hamiltonian, 1, which='SM', v0=-wavefunction)
 
     # Expand to full antisymmetric solution
     wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
@@ -43,12 +64,13 @@ def solve_TISE(params):
     wavefunction *= (np.sum(wavefunction[:]**2) * params.dx**2)**-0.5
 
     # Ground state energy (n.b. undo the potential shift)
-    print('Ground state energy: {0}'.format(np.amin(eigenenergy_gs) - 2*params.v_ext_shift))
+    eigenenergy_gs = np.amin(eigenenergy_gs) - params.num_electrons*params.v_ext_shift
+    print('Ground state energy: {0}'.format(eigenenergy_gs))
 
     # Compute density
     density = calculate_density_exact(params, wavefunction)
 
-    return wavefunction, density, eigenenergy_gs[0]
+    return wavefunction, density, eigenenergy_gs
 
 
 def initial_guess_wavefunction(params):
@@ -96,7 +118,20 @@ def construct_H_sparse(params, basis_type):
             # Add external
             potential[i,j] += params.v_ext[i] + params.v_ext[j]
 
-    if basis_type == 'position':
+    if basis_type == 'position' and params.num_electrons == 1:
+
+        # One-particle Hamiltonian
+        hamiltonian = np.zeros((params.Nspace,params.Nspace))
+
+        # Kinetic energy
+        hamiltonian[:,:] += -0.5*laplace
+
+        # External potential
+        hamiltonian[:,:] += np.diag(params.v_ext)
+
+        hamiltonian = sp.sparse.csr_matrix(hamiltonian)
+
+    elif basis_type == 'position' and params.num_electrons == 2:
 
         # Number of distinct elements of the antisymmetric wavefunction
         num_distinct_elements = int(params.Nspace**2)
@@ -135,7 +170,7 @@ def construct_H_sparse(params, basis_type):
 
         hamiltonian = sp.sparse.csr_matrix((entries, (row, col)))
 
-    elif basis_type == 'position_antisymmetric':
+    elif basis_type == 'position_antisymmetric' and params.num_electrons == 2:
 
         # Init H
         hamiltonian = np.zeros((params.Nspace**2,params.Nspace**2))
