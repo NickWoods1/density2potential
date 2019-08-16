@@ -24,6 +24,7 @@ def solve_TDSE(params, wavefunction_initial):
     if params.time_step_method == 'expm':
 
         # Construct the perturbed hamiltonian
+        a = params.v_ext
         params.v_ext = params.v_ext_td[1,:]
         hamiltonian = construct_H_sparse(params, basis_type='position')
 
@@ -42,9 +43,11 @@ def solve_TDSE(params, wavefunction_initial):
             density[i,:] = calculate_density_exact(params, wavefunction)
 
             # Renormalise the density as well
-            density[i,:] *= 2.0*(np.sum(density[i,:])*params.dx)**-1
+            density[i,:] *= params.num_electrons*(np.sum(density[i,:])*params.dx)**-1
 
             print('Time passed: {}'.format(round(params.time_grid[i],3)), end='\r')
+
+        params.v_ext = a
 
     # Crank-Nicolson time-stepping
     elif params.time_step_method == 'CN':

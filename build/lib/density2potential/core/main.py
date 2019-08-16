@@ -121,7 +121,7 @@ def main():
 
         # Solve the TISE for the ground-state wavefunction, density, and energy.
         print('Solving the TISE...')
-        wavefunction, density2, energy = solve_TISE(params)
+        wavefunction, density, energy = solve_TISE(params)
         print(' ')
 
         # Solve the TDSE for the evolved wavefunction and density, starting from initial wavefunction
@@ -130,7 +130,7 @@ def main():
         print('Time passed: {}'.format(round(params.time,3)))
         print(' ')
 
-        density[0,:] = density2
+
 
         # Set the reference density as the density computed from the exact calculation
         density_reference = density

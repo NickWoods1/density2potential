@@ -27,13 +27,13 @@ def generate_ks_potential(params,density_reference):
     wavefunctions_ks = np.zeros((params.Ntime,params.Nspace,params.num_electrons), dtype=complex)
 
     # Initial guess for the Kohn-Sham potential
-    v_ks[0,:] = 0#0.5*(0.25**2)*params.space_grid**2 - params.v_ext_shift#params.v_ext - params.v_ext_shift
+    v_ks[0,:] = np.load('gs_vks_RE.npy') #0.5*(0.25**2)*params.space_grid**2 + params.v_ext_shift #params.v_ext - params.v_ext_shift
     v_ks[1:,:] = params.v_ext + params.v_pert
     #v_ks += np.random.normal(0.0,0.01,params.Nspace)
 
     # Compute the ground-state Kohn-Sham potential
     i, error = 0, 1
-    while(error > 1e-19):
+    while(i < 40):#   error > 1e-9):
 
         # Construct Hamiltonian for a given Kohn-Sham potential
         hamiltonian = construct_H(params,v_ks[0,:])
@@ -53,19 +53,19 @@ def generate_ks_potential(params,density_reference):
         # Error in the KS density away from the reference density
         error = norm(params,density_ks[0,:] - density_reference[0,:],'MAE')
 
-        #if i % 1000 == 0:
-        #    plt.plot(0.5*(0.25**2)*params.space_grid**2)
-        #    plt.plot(v_ks[0,:])
-         #   plt.plot(density_reference[0,:])
-        #    plt.plot(density_ks[0,:])
-        #    plt.show()
+        if i % 100000 == 0:
+            plt.plot(params.v_ext - np.sum(params.v_ext)/params.Nspace)
+            plt.plot(v_ks[0,:] - np.sum(v_ks[0,:])/params.Nspace)
+            plt.plot(density_reference[0,:])
+            plt.plot(density_ks[0,:])
+            plt.show()
 
         # Update the KS potential with a steepest descent scheme
         #if error > 1e-10:
-        #v_ks[0,:] -= 1*(density_reference[0,:]**0.05 - density_ks[0,:]**0.05)#/ density_reference[0,:]
+        #v_ks[0,1:] -= 10*(density_reference[0,1:]**0.05 - density_ks[0,1:]**0.05)#/ density_reference[0,:]
         #else:
         v_ks[0,:] -= 0.1*(density_reference[0,:] - density_ks[0,:]) / density_reference[0,:]
-        error_vks = norm(params, v_ks[0, :] - params.v_ext, 'MAE')
+        error_vks = norm(params, v_ks[0, :] - np.sum(v_ks[0,:])/params.Nspace - params.v_ext + np.sum(params.v_ext)/params.Nspace, 'MAE')
 
         print('Error = {0} at iteration {1} errro2 {2}'.format(error,i,error_vks), end='\r')
 
@@ -94,8 +94,21 @@ def generate_ks_potential(params,density_reference):
     print('Final error = {0} after {1} function evaluations. Status: {2}'.format(error,opt_info.success,opt_info.success))
    """
 
+    np.save('gs_vks_RE',v_ks[0,:])
+
     # Set initial guess for time-dependent v_ks
-    v_ks[1:,:] = v_ks[0,:] + params.v_pert
+    v_ks[1:,:] = v_ks[0,:] #+ params.v_pert
+
+    density_ks = expm_evolve(params, wavefunctions_ks, v_ks, density_ks)
+
+    for i in range(0,params.Ntime):
+        print(norm(params, density_ks[i,:] - density_reference[i,:], 'MAE'))
+
+    print(np.sum(density_reference[3,:])*params.dx)
+
+    print(np.sum(density_ks[3,:])*params.dx)
+    animate_two_functions(params,density_ks,density_reference,10,'den_compare','ks','ref')
+
 
     # Optimise the time-dependent KS potential
     for i in range(1,params.Ntime):
@@ -193,7 +206,9 @@ def expm_step(params,v_ks,wavefunctions_ks):
     """
 
     hamiltonian = construct_H(params,v_ks)
-    wavefunctions_ks = np.dot(expm(1.0j*params.dt*hamiltonian), wavefunctions_ks)
+    #wavefunctions_ks = np.dot(expm(1.0j*params.dt*hamiltonian), wavefunctions_ks)
+    wavefunctions_ks = sp.sparse.linalg.expm_multiply(1.0j*params.dt*hamiltonian, wavefunctions_ks)
+
 
     return wavefunctions_ks
 

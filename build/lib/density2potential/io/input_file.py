@@ -32,7 +32,7 @@ class parameters(object):
         self.v_ext = 0.5*(0.25**2)*self.space_grid**2
 
         # Shift the potential such that the eigenvalues are negative
-        self.v_ext_shift = 0#abs(2.0*np.amin(self.v_ext))
+        self.v_ext_shift =0 #abs(2.0*np.amin(self.v_ext))
         self.v_ext += self.v_ext_shift
 
         # Time dependent external potential
