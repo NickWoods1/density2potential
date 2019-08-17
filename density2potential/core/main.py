@@ -56,7 +56,14 @@ def main():
         # Generate v_ks
         density_ks, v_ks, wavefunctions_ks = generate_ks_potential(params,density_reference)
 
+        # Animate the time-dependent Kohn-Sham potential
+        print('Animating output...')
+        animate_function(params, v_ks, 10, 'td_ks_potential','KS potential')
+        print(' ')
+        print(' ')
+
         # Save and Graph output
+        plt.clf()
         plt.plot(density_ks[0,:], label='Ground state KS density')
         plt.plot(params.v_ext - np.amin(params.v_ext), label='Ground state KS potential')
         plt.legend()
@@ -66,6 +73,7 @@ def main():
         np.save('td_ks_density', density_ks)
         np.save('td_ks_wavefunctions', wavefunctions_ks)
 
+        print('Finished successfully')
 
     # Solve exact QM for time-dependent wavefunctions, energies, densities, etc.
     elif args.task == 'exact':

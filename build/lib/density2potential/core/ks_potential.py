@@ -104,9 +104,12 @@ def generate_ks_potential(params,density_reference):
         # Final error in the Kohn-Sham density away from the reference density
         error = norm(params, density_ks[i,:] - density_reference[i,:], 'MAE')
 
-        print('Final error = {0} at time {1} after {2} iterations'.format(error,
-                                                                          round(params.time_grid[i],3),
-                                                                          opt_info.nfev), end='\r')
+        print('Final error in KS density is {0} at time {1} after {2} iterations'.format(error,
+                                                                                  round(params.time_grid[i],3),
+                                                                                  opt_info.nfev), end='\r')
+
+    print(' ')
+    print(' ')
 
     return density_ks, v_ks, wavefunctions_ks
 
@@ -218,9 +221,6 @@ def crank_nicolson_step(params,v_ks,wavefunctions_ks):
     # Solve Ax = b
     wavefunctions_ks = np.linalg.solve(A,b)
 
-    # Ensure the wavefunctions are normalised (although with unitary time evolution they should be)
-    #wavefunctions_ks[:,0:params.num_electrons] = normalise_function(params,wavefunctions_ks[:,0:params.num_electrons])
-
     return wavefunctions_ks
 
 
@@ -232,8 +232,7 @@ def crank_nicolson_evolve(params,wavefunctions_ks,v_ks,density_ks):
     for i in range(1,params.Ntime):
 
         wavefunctions_ks[i,:,:] = crank_nicolson_step(params,v_ks[i,:],wavefunctions_ks[i-1,:,:])
-        density_ks[i,:] = np.sum(abs(wavefunctions_ks[i,:,:])**2, axis=1)
-
+        density_ks[i,:] = calculate_density_ks(params, wavefunctions_ks[i,:,:])
     return density_ks
 
 

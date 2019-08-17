@@ -108,6 +108,9 @@ def generate_ks_potential(params,density_reference):
                                                                                   round(params.time_grid[i],3),
                                                                                   opt_info.nfev), end='\r')
 
+    print(' ')
+    print(' ')
+
     return density_ks, v_ks, wavefunctions_ks
 
 

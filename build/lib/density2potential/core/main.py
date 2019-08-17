@@ -7,10 +7,9 @@ from density2potential.plot.animate import animate_function, animate_two_functio
 from density2potential.core.ks_potential import generate_ks_potential
 from density2potential.core.exact_TISE import solve_TISE
 from density2potential.core.exact_TDSE import solve_TDSE
-from density2potential.utils.math import norm
 
 """
-Main hook for the requested action
+Entry point for the requested action
 """
 
 def main():
@@ -57,7 +56,24 @@ def main():
         # Generate v_ks
         density_ks, v_ks, wavefunctions_ks = generate_ks_potential(params,density_reference)
 
+        # Animate the time-dependent Kohn-Sham potential
+        print('Animating output...')
+        animate_function(params, v_ks, 10, 'td_ks_potential','KS potential')
+        print(' ')
+        print(' ')
+
         # Save and Graph output
+        plt.clf()
+        plt.plot(density_ks[0,:], label='Ground state KS density')
+        plt.plot(params.v_ext - np.amin(params.v_ext), label='Ground state KS potential')
+        plt.legend()
+        plt.savefig('groundstate_den_and_vks.pdf')
+
+        np.save('td_ks_potential', v_ks)
+        np.save('td_ks_density', density_ks)
+        np.save('td_ks_wavefunctions', wavefunctions_ks)
+
+        print('Finished successfully')
 
     # Solve exact QM for time-dependent wavefunctions, energies, densities, etc.
     elif args.task == 'exact':
@@ -104,16 +120,6 @@ def main():
         print(' ')
 
         print('Finished successfully')
-
-    # Plot files generated prior
-    elif args.task == 'plot':
-
-        params = parameters()
-
-        den1 = np.load('TD_density.npy')
-        den2 = np.load('TD_densityCN.npy')
-
-        animate_two_functions(params, den1, den2, 5, 'compare_two_densities', 'expm', 'CN')
 
     elif args.task == 'exact-then-vks':
 
