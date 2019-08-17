@@ -9,6 +9,7 @@ Solve the exact time-independent Schrodinger equation in 1D to generate exact gr
 density, wavefunction, and energy
 """
 
+
 def solve_TISE(params):
     r"""
     Solves the time-independent Schrodinger equation
@@ -22,6 +23,7 @@ def solve_TISE(params):
 
         # Find spectrum of the single-particle H
         eigenenergy, eigenfunction = sp.linalg.eigh(hamiltonian)
+        eigenfunction = eigenfunction.real
 
         # Noramise wavefunction
         wavefunction = eigenfunction[:,0]*(np.sum(eigenfunction[:,0]**2) * params.dx)**-0.5

@@ -1,15 +1,14 @@
 import numpy as np
-from scipy.optimize import root,minimize
+import scipy as sp
+from scipy.optimize import root, minimize
 import matplotlib.pyplot as plt
 from density2potential.plot.animate import animate_function, animate_two_functions
-from density2potential.utils.math import norm, normalise_function, discrete_Laplace, calculate_density_exact
-from density2potential.core.exact_TISE import construct_H_dense
-from scipy.linalg import expm
-import scipy as sp
+from density2potential.utils.math import norm, normalise_function, discrete_Laplace, calculate_density_ks
 
 """
 Functions that contain the core functionality to find a Kohn-Sham potential given a density
 """
+
 
 def generate_ks_potential(params,density_reference):
     r"""
@@ -17,122 +16,97 @@ def generate_ks_potential(params,density_reference):
 
     :param params: input parameters object
     :param density_reference: the reference density, 2D array [time,space]
-    :return: The output Kohn-Sham potential, the density it produces, and the corresponding wavefunctions, 2D array [time,space]
+    :return: The output Kohn-Sham potential, the density it produces, and the corresponding wavefunctions,
+             2D array [time,space]
     """
 
-    # Ground state
+    # Deal with ground state before time-dependence
     # Init variables
     v_ks = np.zeros((params.Ntime,params.Nspace))
     density_ks = np.zeros((params.Ntime,params.Nspace))
     wavefunctions_ks = np.zeros((params.Ntime,params.Nspace,params.num_electrons), dtype=complex)
 
     # Initial guess for the Kohn-Sham potential
-    v_ks[0,:] = np.load('gs_vks_RE.npy') #0.5*(0.25**2)*params.space_grid**2 + params.v_ext_shift #params.v_ext - params.v_ext_shift
+    v_ks[0,:] = params.v_ext
     v_ks[1:,:] = params.v_ext + params.v_pert
-    #v_ks += np.random.normal(0.0,0.01,params.Nspace)
 
     # Compute the ground-state Kohn-Sham potential
     i, error = 0, 1
-    while(i < 40):#   error > 1e-9):
+    while(error > 5e-16):
 
         # Construct Hamiltonian for a given Kohn-Sham potential
         hamiltonian = construct_H(params,v_ks[0,:])
 
         # Find eigenvectors and eigenvalues of this Hamiltonian
         eigenenergies_ks, eigenfunctions_ks = sp.linalg.eigh(hamiltonian)
+        eigenfunctions_ks = eigenfunctions_ks.real
 
         # Store the lowest N_electron eigenfunctions as wavefunctions
         wavefunctions_ks[0,:,0:params.num_electrons] = eigenfunctions_ks[:,0:params.num_electrons]
 
         # Normalise the wavefunctions w.r.t the continous L2 norm
-        wavefunctions_ks[0,:,0] = eigenfunctions_ks[:,0]*(np.sum(eigenfunctions_ks[:,0]**2) * params.dx)**-0.5
+        wavefunctions_ks[0,:,0:params.num_electrons] = normalise_function(params,
+                                                                          wavefunctions_ks[0,:,0:params.num_electrons])
 
         # Construct KS density
-        density_ks[0,:] = calculate_density_exact(params, wavefunctions_ks[0,:,0])
+        density_ks[0,:] = calculate_density_ks(params, wavefunctions_ks[0,:,:])
 
         # Error in the KS density away from the reference density
         error = norm(params,density_ks[0,:] - density_reference[0,:],'MAE')
 
-        if i % 100000 == 0:
-            plt.plot(params.v_ext - np.sum(params.v_ext)/params.Nspace)
-            plt.plot(v_ks[0,:] - np.sum(v_ks[0,:])/params.Nspace)
-            plt.plot(density_reference[0,:])
-            plt.plot(density_ks[0,:])
-            plt.show()
-
         # Update the KS potential with a steepest descent scheme
-        #if error > 1e-10:
-        #v_ks[0,1:] -= 10*(density_reference[0,1:]**0.05 - density_ks[0,1:]**0.05)#/ density_reference[0,:]
-        #else:
         v_ks[0,:] -= 0.1*(density_reference[0,:] - density_ks[0,:]) / density_reference[0,:]
-        error_vks = norm(params, v_ks[0, :] - np.sum(v_ks[0,:])/params.Nspace - params.v_ext + np.sum(params.v_ext)/params.Nspace, 'MAE')
 
-        print('Error = {0} at iteration {1} errro2 {2}'.format(error,i,error_vks), end='\r')
+        print('Error = {0} after {1} iterations'.format(error,i), end='\r')
 
         i += 1
 
     print('Final error in the ground state KS density is {0} after {1} iterations'.format(error,i))
+    print(' ')
 
     """
     # Compute the ground-state potential using a scipy optimiser
-    opt_info = root(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[:,:],
-                                                                      ), method='hybr', options={'ftol':1e-10,'disp':True})
-
-    #opt_info = minimize(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[:,:],
-    #                                                                  ), method='SLSQP', options={'disp':True})
+    opt_info = root(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[0,:],
+                                                                      ), method='hybr', tol=1e-16)
 
     # Output v_ks
     v_ks[0,:] = opt_info.x
 
     # Compute the corresponding wavefunctions, density, and error
     hamiltonian = construct_H(params, v_ks[0, :])
-    eigenenergies_ks, eigenfunctions_ks = np.linalg.eigh(hamiltonian)
-    wavefunctions_ks[0, :, 0:params.num_electrons] = eigenfunctions_ks[:, 0:params.num_electrons]
-    wavefunctions_ks[0, :, 0:params.num_electrons] = normalise_function(params,wavefunctions_ks[0, :, 0:params.num_electrons])
-    density_ks[0, :] = np.sum(np.abs(wavefunctions_ks[0, :, :]) ** 2, axis=1, dtype=np.float)
-    error = norm(params, density_ks[0, :] - density_reference[0, :], 'C2')
-    print('Final error = {0} after {1} function evaluations. Status: {2}'.format(error,opt_info.success,opt_info.success))
-   """
+    eigenenergies_ks, eigenfunctions_ks = sp.linalg.eigh(hamiltonian)
+    wavefunctions_ks[0,:,0:params.num_electrons] = normalise_function(params,eigenfunctions_ks[:,0:params.num_electrons])
+    density_ks[0, :] = calculate_density_ks(params, wavefunctions_ks[0,:,:])
+    error = norm(params, density_ks[0, :] - density_reference[0, :], 'MAE')
+    print('Final root finder error = {0} after {1} function evaluations. Status: {2}'.format(error,opt_info.nfev,opt_info.success))
+    print(' ')
+    """
 
-    np.save('gs_vks_RE',v_ks[0,:])
-
-    # Set initial guess for time-dependent v_ks
-    v_ks[1:,:] = v_ks[0,:] #+ params.v_pert
-
-    density_ks = expm_evolve(params, wavefunctions_ks, v_ks, density_ks)
-
-    for i in range(0,params.Ntime):
-        print(norm(params, density_ks[i,:] - density_reference[i,:], 'MAE'))
-
-    print(np.sum(density_reference[3,:])*params.dx)
-
-    print(np.sum(density_ks[3,:])*params.dx)
-    animate_two_functions(params,density_ks,density_reference,10,'den_compare','ks','ref')
-
-
-    # Optimise the time-dependent KS potential
+    # Now optimise the time-dependent KS potential
     for i in range(1,params.Ntime):
 
         # Find the v_ks that minimises the specified objective function
         opt_info = root(evolution_objective_function,v_ks[i,:],args=(params,wavefunctions_ks[i-1,:,:],density_reference[i,:],
-                                                                     'root', 'expm'), method='hybr',options={'maxiter':10000})
-        # Final Kohn-Sham potential
+                                                                     'root', 'expm'), method='hybr', tol=1e-16)
+
+        # Final (optimal) Kohn-Sham potential at time step i
         v_ks[i,:] = opt_info.x
 
-        # Compute the final error away from the reference density for this Kohn-Sham potential
-        #wavefunctions_ks[i,:,:] = crank_nicolson_step(params,v_ks[i,:],wavefunctions_ks[i-1,:,:])
-        wavefunctions_ks[i,:,:] = expm_step(params,v_ks[i,:],wavefunctions_ks[i-1,:,:])
-        density_ks[i,:] = np.sum(abs(wavefunctions_ks[i,:,:])**2, axis=1)
+        # Compute the evolved wavefunctions given the optimal Kohn-Sham potential
+        if params.time_step_method == 'CN':
+            wavefunctions_ks[i,:,:] = crank_nicolson_step(params,v_ks[i,:],wavefunctions_ks[i-1,:,:])
+        elif params.time_step_method == 'expm':
+            wavefunctions_ks[i,:,:] = expm_step(params,v_ks[i,:],wavefunctions_ks[i-1,:,:])
+
+        # Final Kohn-Sham density
+        density_ks[i,:] = calculate_density_ks(params, wavefunctions_ks[i,:,:])
+
+        # Final error in the Kohn-Sham density away from the reference density
         error = norm(params, density_ks[i,:] - density_reference[i,:], 'MAE')
 
-        print('Time step {0}'.format(i))
-        #print('MAE in Kohn-Sham potential away from exact {}'.format(norm(params,v_ks[i,:] - v_ext - v_pert,'MAE')))
-        print('Optimiser status: {0} with final error = {1} after {2} iterations'.format(opt_info.success,error,opt_info.nfev))
-        print('Integrated Kohn-Sham potential = {}'.format(norm(params,v_ks[i,:],'C2')))
-        print(' ')
-
-    # Plot animated Kohn-Sham potential
-    animate_function(params,v_ks,5,'TD_KS_potential','v_ks')
+        print('Final error = {0} at time {1} after {2} iterations'.format(error,
+                                                                          round(params.time_grid[i],3),
+                                                                          opt_info.nfev), end='\r')
 
     return density_ks, v_ks, wavefunctions_ks
 
@@ -147,7 +121,7 @@ def groundstate_objective_function(v_ks,params,wavefunctions_ks,density_referenc
     hamiltonian = construct_H(params, v_ks[:])
 
     # Find eigenvectors and eigenvalues of this Hamiltonian
-    eigenenergies_ks, eigenfunctions_ks = np.linalg.eigh(hamiltonian)
+    eigenenergies_ks, eigenfunctions_ks = sp.linalg.eigh(hamiltonian)
 
     # Store the lowest N_electron eigenfunctions as wavefunctions
     wavefunctions_ks[0, :, 0:params.num_electrons] = eigenfunctions_ks[:, 0:params.num_electrons]
@@ -158,7 +132,7 @@ def groundstate_objective_function(v_ks,params,wavefunctions_ks,density_referenc
     # Construct KS density
     density_ks = np.sum(np.abs(wavefunctions_ks[0, :, :])**2, axis=1, dtype=np.float)
 
-    return abs(density_reference[0,:] - density_ks[:]) / density_reference[0,:]
+    return density_reference[:] - density_ks[:]
 
 
 def evolution_objective_function(v_ks,params,wavefunctions_ks,density_reference,objective_type,evolution_type):
@@ -183,17 +157,17 @@ def evolution_objective_function(v_ks,params,wavefunctions_ks,density_reference,
     else:
         raise RuntimeError('Invalid time evolution method specified')
 
+    wavefunctions_ks[:,0:params.num_electrons] = normalise_function(params,wavefunctions_ks[:,0:params.num_electrons])
+
     # Compute evolved density from the evolved wavefunctions
-    density_ks = np.sum(abs(wavefunctions_ks[:,:])**2, axis=1)
+    density_ks = calculate_density_ks(params, wavefunctions_ks[:,:])
 
     # Error in the KS density away from the reference density
     error = norm(params,density_ks[:] - density_reference[:],'C2')
 
-    v_ks_average = np.sum(v_ks[:])
-
     # Return a particular output that defines the objective to be minimised
     if (objective_type == 'root'):
-        return abs(density_reference - density_ks)
+        return density_ks - density_reference
     elif (objective_type == 'opt'):
         return error
     else:
@@ -206,11 +180,13 @@ def expm_step(params,v_ks,wavefunctions_ks):
     """
 
     hamiltonian = construct_H(params,v_ks)
-    #wavefunctions_ks = np.dot(expm(1.0j*params.dt*hamiltonian), wavefunctions_ks)
-    wavefunctions_ks = sp.sparse.linalg.expm_multiply(1.0j*params.dt*hamiltonian, wavefunctions_ks)
 
+    #wavefunctions_ks = sp.sparse.linalg.expm_multiply(1.0j*params.dt*hamiltonian, wavefunctions_ks)
+    updated_wvfns = np.zeros((params.Nspace,params.num_electrons), dtype=np.complex)
+    for i in range(0,params.num_electrons):
+        updated_wvfns[:,i] += sp.sparse.linalg.expm_multiply(1.0j*params.dt*hamiltonian, wavefunctions_ks[:,i])
 
-    return wavefunctions_ks
+    return updated_wvfns
 
 
 def expm_evolve(params,wavefunctions_ks,v_ks,density_ks):
@@ -267,7 +243,7 @@ def construct_H(params,v_ks):
     """
 
     # Kinetic energy
-    hamiltonian = -0.5 * discrete_Laplace(params)
+    hamiltonian = -0.5*discrete_Laplace(params)
 
     # Potential energy
     hamiltonian += np.diag(v_ks)

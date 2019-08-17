@@ -94,7 +94,30 @@ def calculate_density_exact(params, wavefunction):
         for i in range(0,params.Nspace):
             l_bound = int(params.Nspace*i)
             u_bound = int(params.Nspace*(i + 1) - 1)
-            density[i] = 2.0 * np.sum(abs(wavefunction[l_bound:u_bound])**2) * params.dx
+            density[i] = np.sum(abs(wavefunction[l_bound:u_bound])**2) * params.dx
+
+    density *= params.num_electrons*(np.sum(density[:]) * params.dx)**-1.0
 
     return density
+
+
+def calculate_density_ks(params, wavefunctions_ks):
+    r"""
+    Calculates the KS particle density given some KS wavefunctions [space, orbital #]
+    """
+
+    density = np.zeros((params.Nspace))
+
+    if params.num_electrons == 1:
+
+        density[:] = abs(wavefunctions_ks[:,0])**2
+
+    elif params.num_electrons == 2:
+
+        density = np.sum(abs(wavefunctions_ks[:,:])**2, axis=1)
+
+    density *= params.num_electrons*(np.sum(density[:]) * params.dx)**-1.0
+
+    return density
+
 

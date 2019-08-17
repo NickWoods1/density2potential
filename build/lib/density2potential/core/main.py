@@ -7,6 +7,7 @@ from density2potential.plot.animate import animate_function, animate_two_functio
 from density2potential.core.ks_potential import generate_ks_potential
 from density2potential.core.exact_TISE import solve_TISE
 from density2potential.core.exact_TDSE import solve_TDSE
+from density2potential.utils.math import norm
 
 """
 Main hook for the requested action
@@ -46,11 +47,12 @@ def main():
     # Find the Kohn-Sham potential that generates a given reference density
     if args.task == 'find-vks':
 
+        # Read in the parameters used to generate reference density
+        params_save = open('params.obj', 'rb')
+        params = pickle.load(params_save)
+
         # Read in reference density
         density_reference = np.load('td_density.npy')
-
-        # Create parameters object
-        params = parameters()
 
         # Generate v_ks
         density_ks, v_ks, wavefunctions_ks = generate_ks_potential(params,density_reference)
@@ -98,7 +100,6 @@ def main():
         # Animate the time-dependent density
         print('Animating output...')
         animate_function(params, density, 10, 'td_density','density')
-        #animate_two_functions(params,density,density_idea,10,'exact_den','Exact TD Density me','density-idea')
         print(' ')
         print(' ')
 
@@ -130,10 +131,18 @@ def main():
         print('Time passed: {}'.format(round(params.time,3)))
         print(' ')
 
-
+        # Animate the time-dependent density
+        print('Animating output...')
+        #animate_function(params, density, 10, 'td_density','density')
+        #animate_two_functions(params, density, idea_den, 5, 'compidea', 'me', 'idea')
 
         # Set the reference density as the density computed from the exact calculation
         density_reference = density
 
         # Generate v_ks
         density_ks, v_ks, wavefunctions_ks = generate_ks_potential(params,density_reference)
+
+        # Save relevant objects
+        np.save('td_ks_potential', v_ks)
+        np.save('td_ks_density', density_ks)
+        np.save('td_ks_wavefunctions', wavefunctions_ks)
