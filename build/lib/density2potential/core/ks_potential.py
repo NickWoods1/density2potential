@@ -3,7 +3,8 @@ import scipy as sp
 from scipy.optimize import root, minimize
 import matplotlib.pyplot as plt
 from density2potential.plot.animate import animate_function, animate_two_functions
-from density2potential.utils.math import norm, normalise_function, discrete_Laplace, calculate_density_ks
+from density2potential.utils.math import norm, normalise_function, discrete_Laplace
+from density2potential.utils.physics import calculate_density_ks
 
 """
 Functions that contain the core functionality to find a Kohn-Sham potential given a density
@@ -15,10 +16,15 @@ def generate_ks_potential(params,density_reference):
     Reverse engineers a reference density to product a Kohn-Sham potential
 
     :param params: input parameters object
-    :param density_reference: the reference density, 2D array [time,space]
-    :return: The output Kohn-Sham potential, the density it produces, and the corresponding wavefunctions,
-             2D array [time,space]
+    :param density_reference: ndarray, the reference density, axes [time,space]
+    :return: density_ks, v_ks, wavefunctions_ks: ndarray, the optimised density, Kohn-Sham potential and wavefunctions
     """
+
+    ideaden = np.load('td_density_exact.npy')
+
+    plt.plot(ideaden[0,:] - density_reference[0,:])
+    plt.show()
+    #density_reference = ideaden
 
     # Deal with ground state before time-dependence
     # Init variables
@@ -32,7 +38,7 @@ def generate_ks_potential(params,density_reference):
 
     # Compute the ground-state Kohn-Sham potential
     i, error = 0, 1
-    while(error > 5e-16):
+    while(error > 5e-10):
 
         # Construct Hamiltonian for a given Kohn-Sham potential
         hamiltonian = construct_H(params,v_ks[0,:])
@@ -55,7 +61,15 @@ def generate_ks_potential(params,density_reference):
         error = norm(params,density_ks[0,:] - density_reference[0,:],'MAE')
 
         # Update the KS potential with a steepest descent scheme
-        v_ks[0,:] -= 0.1*(density_reference[0,:] - density_ks[0,:]) / density_reference[0,:]
+        v_ks[0,:] -= 0.01*(density_reference[0,:] - density_ks[0,:]) / density_reference[0,:]
+        #v_ks[0,:] -= density_reference[0,:]**0.05 - density_ks[0,:]**0.05
+
+        #if i % 10000 == 0:
+        #    plt.plot(v_ks[0,:])
+        #    plt.plot(density_ks[0,:])
+        #    plt.plot(density_reference[0,:])
+        #    plt.show()
+
 
         print('Error = {0} after {1} iterations'.format(error,i), end='\r')
 
@@ -64,7 +78,7 @@ def generate_ks_potential(params,density_reference):
     print('Final error in the ground state KS density is {0} after {1} iterations'.format(error,i))
     print(' ')
 
-    """
+
     # Compute the ground-state potential using a scipy optimiser
     opt_info = root(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[0,:],
                                                                       ), method='hybr', tol=1e-16)
@@ -80,10 +94,9 @@ def generate_ks_potential(params,density_reference):
     error = norm(params, density_ks[0, :] - density_reference[0, :], 'MAE')
     print('Final root finder error = {0} after {1} function evaluations. Status: {2}'.format(error,opt_info.nfev,opt_info.success))
     print(' ')
-    """
 
     # Now optimise the time-dependent KS potential
-    for i in range(1,params.Ntime):
+    for i in range(1,15):#params.Ntime):
 
         # Find the v_ks that minimises the specified objective function
         opt_info = root(evolution_objective_function,v_ks[i,:],args=(params,wavefunctions_ks[i-1,:,:],density_reference[i,:],
@@ -142,14 +155,6 @@ def evolution_objective_function(v_ks,params,wavefunctions_ks,density_reference,
     r"""
     The objective function for root finding and optimisation algorithms, defined with some
     method of evolving psi(t) --> psi(t+dt).
-
-    :param v_ks: Kohn-Sham potential for which the evolution of psi is computed, 1D array, [space]
-    :param params: input params for calculation
-    :param wavefunctions_ks: current Kohn-Sham wavefunctions psi(t). 2D array labelled [space,band] for a given t
-    :param density_reference: the reference densiy at the t+dt timestep, 1D array [space]
-    :param type: Whether to return a root finding objective function (R^n --> R^n),
-                 or an optimisation objective function (R^n --> R). String, choices: "opt" or "root".
-    :return: Output of the objective, the 'error', in some sense.
     """
 
     # Evolve the wavefunctions according to the given scheme

@@ -1,7 +1,8 @@
 import numpy as np
 import scipy as sp
-from density2potential.core.exact_TISE import construct_H_sparse, pack_wavefunction, unpack_wavefunction
-from density2potential.utils.math import calculate_density_exact, norm, normalise_function
+from density2potential.core.exact_TISE import construct_H_sparse
+from density2potential.utils.math import norm, normalise_function
+from density2potential.utils.physics import calculate_density_exact
 from density2potential.plot.animate import animate_function
 import matplotlib.pyplot as plt
 
@@ -30,13 +31,20 @@ def solve_TDSE(params, wavefunction_initial):
 
         for i in range(1,params.Ntime):
 
+            # If the perturbation to the external potential is dependent on time
+            # updated H at each time-step
+            if params.td_pert:
+
+                params.v_ext = params.v_ext_td[i,:]
+                hamiltonian = construct_H_sparse(params, basis_type='position')
+
             # Evolve the wavefunction
             wavefunction = expm_step(params, wavefunction, hamiltonian)
 
             # Compute the density
             density[i,:] = calculate_density_exact(params, wavefunction)
 
-            # Renormalise the wavefunction (potentially dubious)
+            # Renormalise the wavefunction
             wavefunction *= (np.sum(abs(wavefunction[:])**2)*params.dx**2)**-0.5
 
             # Calculate + normalise density
@@ -60,16 +68,27 @@ def solve_TDSE(params, wavefunction_initial):
 
         for i in range(0,params.Ntime):
 
-            # Construct b for CN's Ax=b equation
-            b = (identity - CN_matrix).dot(wavefunction)
+            # If the perturbation to the external potential is dependent on time
+            # updated H at each time-step
+            if params.td_pert:
 
-            # Evolve the wavefunction
-            wavefunction, status = sp.sparse.linalg.cg(A, b, x0=wavefunction, tol=1e-17, atol=1e-15)
+                params.v_ext = params.v_ext_td[i,:]
+                hamiltonian = construct_H_sparse(params, basis_type='position')
+
+                wavefunction = crank_nicolson_step(params, wavefunction, hamiltonian)
+
+            else:
+
+                # Construct b for CN's Ax=b equation
+                b = (identity - CN_matrix).dot(wavefunction)
+
+                # Evolve the wavefunction
+                wavefunction, status = sp.sparse.linalg.cg(A, b, x0=wavefunction, tol=1e-17, atol=1e-15)
 
             # Renormalise the wavefunction, potentially dubious
             wavefunction *= (np.sum(abs(wavefunction[:])**2) * params.dx**2)**-0.5
 
-            # Calculate density
+            # Calculate and renormalise density
             density[i,:] = calculate_density_exact(params, wavefunction)
 
             print('Time passed: {}'.format(round(params.time_grid[i],3)), end='\r')

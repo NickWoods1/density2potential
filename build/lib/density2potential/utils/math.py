@@ -63,61 +63,41 @@ def discrete_Laplace(params):
         laplace += np.diag(16.0*np.ones(params.Nspace-1),1) + np.diag(16*np.ones(params.Nspace-1),-1)
         laplace += np.diag(-1.0*np.ones(params.Nspace-2),2) + np.diag(-1.0*np.ones(params.Nspace-2),-2)
         laplace *= 1.0 / (12.0 * params.dx**2)
+    elif params.stencil == 7:
+        # 7-point stencil
+        laplace = -490*np.eye(params.Nspace, dtype=np.float)
+        laplace += np.diag(270*np.ones(params.Nspace-1),1) + np.diag(270*np.ones(params.Nspace-1),-1)
+        laplace += np.diag(-27*np.ones(params.Nspace-2),2) + np.diag(-27*np.ones(params.Nspace-2),-2)
+        laplace += np.diag(2*np.ones(params.Nspace-3),3) + np.diag(2*np.ones(params.Nspace-3),-3)
+        laplace *= 1.0 / (180.0 * params.dx**2)
     elif params.stencil == 9:
         # 9-point stencil
-        laplace = -1430.0 * np.eye(params.Nspace, dtype=np.float)
+        laplace = -14350.0 * np.eye(params.Nspace, dtype=np.float)
         laplace += np.diag(8064*np.ones(params.Nspace-1),1) + np.diag(8064*np.ones(params.Nspace-1),-1)
         laplace += np.diag(-1008*np.ones(params.Nspace-2),2) + np.diag(-1008*np.ones(params.Nspace-2),-2)
         laplace += np.diag(128*np.ones(params.Nspace-3),3) + np.diag(128*np.ones(params.Nspace-3),-3)
         laplace += np.diag(-9*np.ones(params.Nspace-4),4) + np.diag(-9*np.ones(params.Nspace-4),-4)
         laplace *= 1.0 / (5040.0 * params.dx**2)
+    elif params.stencil == 11:
+        # 11-point stencil
+        laplace = -73766.0 * np.eye(params.Nspace, dtype=np.float)
+        laplace += np.diag(42000*np.ones(params.Nspace-1),1) + np.diag(42000*np.ones(params.Nspace-1),-1)
+        laplace += np.diag(-6000*np.ones(params.Nspace-2),2) + np.diag(-6000*np.ones(params.Nspace-2),-2)
+        laplace += np.diag(1000*np.ones(params.Nspace-3),3) + np.diag(1000*np.ones(params.Nspace-3),-3)
+        laplace += np.diag(-125*np.ones(params.Nspace-4),4) + np.diag(-125*np.ones(params.Nspace-4),-4)
+        laplace += np.diag(8*np.ones(params.Nspace-5),5) + np.diag(8*np.ones(params.Nspace-5),-5)
+        laplace *= 1.0 / (25200.0 * params.dx**2)
+    elif params.stencil == 13:
+        # 13-point stencil
+        laplace = -2480478.0 * np.eye(params.Nspace, dtype=np.float)
+        laplace += np.diag(1425600*np.ones(params.Nspace-1),1) + np.diag(1425600*np.ones(params.Nspace-1),-1)
+        laplace += np.diag(-222750*np.ones(params.Nspace-2),2) + np.diag(-222750*np.ones(params.Nspace-2),-2)
+        laplace += np.diag(44000*np.ones(params.Nspace-3),3) + np.diag(44000*np.ones(params.Nspace-3),-3)
+        laplace += np.diag(-7425*np.ones(params.Nspace-4),4) + np.diag(-7425*np.ones(params.Nspace-4),-4)
+        laplace += np.diag(864*np.ones(params.Nspace-5),5) + np.diag(864*np.ones(params.Nspace-5),-5)
+        laplace += np.diag(-50*np.ones(params.Nspace-6),6) + np.diag(-50*np.ones(params.Nspace-6),-6)
+        laplace *= 1.0 / (831600.0 * params.dx**2)
     else:
         raise RuntimeError('Not a valid stencil')
 
     return laplace
-
-
-def calculate_density_exact(params, wavefunction):
-    r"""
-    Calculates the electron density given a wavefunction under the coordinate mapping: (x_1, x_2, ... x_N) ---> x
-    used in this package.
-    """
-
-    density = np.zeros((params.Nspace))
-
-    if params.num_electrons == 1:
-
-        density[:] = abs(wavefunction[:])**2
-
-    elif params.num_electrons == 2:
-
-        for i in range(0,params.Nspace):
-            l_bound = int(params.Nspace*i)
-            u_bound = int(params.Nspace*(i + 1) - 1)
-            density[i] = np.sum(abs(wavefunction[l_bound:u_bound])**2) * params.dx
-
-    density *= params.num_electrons*(np.sum(density[:]) * params.dx)**-1.0
-
-    return density
-
-
-def calculate_density_ks(params, wavefunctions_ks):
-    r"""
-    Calculates the KS particle density given some KS wavefunctions [space, orbital #]
-    """
-
-    density = np.zeros((params.Nspace))
-
-    if params.num_electrons == 1:
-
-        density[:] = abs(wavefunctions_ks[:,0])**2
-
-    elif params.num_electrons == 2:
-
-        density = np.sum(abs(wavefunctions_ks[:,:])**2, axis=1)
-
-    density *= params.num_electrons*(np.sum(density[:]) * params.dx)**-1.0
-
-    return density
-
-

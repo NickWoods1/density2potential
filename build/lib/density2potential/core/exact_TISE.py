@@ -1,5 +1,6 @@
 import numpy as np
-from density2potential.utils.math import discrete_Laplace, norm, normalise_function, calculate_density_exact
+from density2potential.utils.math import discrete_Laplace, norm, normalise_function
+from density2potential.utils.physics import calculate_density_exact
 from density2potential.plot.animate import animate_function
 import matplotlib.pyplot as plt
 import scipy as sp
@@ -25,8 +26,8 @@ def solve_TISE(params):
         eigenenergy, eigenfunction = sp.linalg.eigh(hamiltonian)
         eigenfunction = eigenfunction.real
 
-        # Noramise wavefunction
-        wavefunction = eigenfunction[:,0]*(np.sum(eigenfunction[:,0]**2) * params.dx)**-0.5
+        # Norm wavefunction
+        wavefunction = normalise_function(params, eigenfunction[:,0])
 
         # Ground state energy (n.b. undo the potential shift)
         eigenenergy = np.amin(eigenenergy) - params.num_electrons*params.v_ext_shift
@@ -53,14 +54,15 @@ def solve_TISE(params):
     hamiltonian = construct_H_sparse(params, basis_type='position')
 
     # Perform the transformation U^T H U = H': project out the antisymmetric subspace of H
-    hamiltonian = hamiltonian.dot(antisymm_expansion)
-    hamiltonian = antisymm_reduction.dot(hamiltonian)
+    #hamiltonian = hamiltonian.dot(antisymm_expansion)
+    #hamiltonian = antisymm_reduction.dot(hamiltonian)
 
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
-    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(hamiltonian, 1, which='SM', v0=-wavefunction)
+    #eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(hamiltonian, 1, which='SM', v0=-wavefunction)
+    eigenenergy_gs, eigenfunction_gs = sp.linalg.eigh(sp.sparse.csr_matrix.todense(hamiltonian))
 
     # Expand to full antisymmetric solution
-    wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
+    #wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
 
     # Normalise the eigenfunction
     wavefunction *= (np.sum(wavefunction[:]**2) * params.dx**2)**-0.5
@@ -115,7 +117,7 @@ def construct_H_sparse(params, basis_type):
         for j in range(0,params.Nspace):
 
             # Add Coulomb
-            potential[i,j] += 1 / (abs(params.space_grid[i] - params.space_grid[j]) + 1)
+            potential[i,j] += 1 / (abs(params.space_grid[i] - params.space_grid[j]) + 0.1)
 
             # Add external
             potential[i,j] += params.v_ext[i] + params.v_ext[j]

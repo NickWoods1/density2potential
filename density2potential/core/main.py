@@ -65,7 +65,7 @@ def main():
         # Save and Graph output
         plt.clf()
         plt.plot(density_ks[0,:], label='Ground state KS density')
-        plt.plot(params.v_ext - np.amin(params.v_ext), label='Ground state KS potential')
+        plt.plot(v_ks[0,:], label='Ground state KS potential')
         plt.legend()
         plt.savefig('groundstate_den_and_vks.pdf')
 
@@ -152,3 +152,17 @@ def main():
         np.save('td_ks_potential', v_ks)
         np.save('td_ks_density', density_ks)
         np.save('td_ks_wavefunctions', wavefunctions_ks)
+
+    elif args.task == 'test':
+
+        vks = np.load('td_ks_potential.npy')
+
+                # Read in the parameters used to generate reference density
+        params_save = open('params.obj', 'rb')
+        params = pickle.load(params_save)
+
+
+        for i in range(0,params.Ntime):
+            vks[i,:] -= np.sum(vks[i,:])/params.Nspace
+
+        animate_function(params, vks, 10, 'vks', 'vks')
