@@ -8,7 +8,7 @@ class parameters(object):
     def __init__(self,*args,**kwargs):
 
         # Space
-        self.Nspace = 101
+        self.Nspace = 301
         self.space = kwargs.pop('space',20)
         self.dx = self.space / (self.Nspace-1)
 
@@ -21,7 +21,7 @@ class parameters(object):
         self.num_electrons = kwargs.pop('num_electrons',2)
 
         # Misc.
-        self.stencil = kwargs.pop('stencil',5)
+        self.stencil = kwargs.pop('stencil',9)
 
         # Grid
         self.space_grid = np.linspace(-0.5*self.space, 0.5*self.space, self.Nspace)
@@ -33,7 +33,7 @@ class parameters(object):
         self.v_ext = 5e-11*self.space_grid**10 - 1.3e-4*self.space_grid**4
 
         # Shift the potential such that the eigenvalues are negative
-        self.v_ext_shift = -10 #abs(2.0*np.amin(self.v_ext))
+        self.v_ext_shift = 0 #abs(2.0*np.amin(self.v_ext))
         self.v_ext += self.v_ext_shift
 
         # Time dependent external potential
@@ -48,3 +48,30 @@ class parameters(object):
 
         # Method for time-propagation (KS and exact)
         self.time_step_method = 'expm'
+
+
+        ################## DFT #################
+
+        # Size of real space cell
+        self.cell = self.space
+        self.Nspace_dft = self.Nspace
+        self.dx_dft = self.cell / (self.Nspace_dft - 1)
+
+        # Grid
+        self.grid_dft = np.linspace(-0.5*self.cell, 0.5*self.cell, self.Nspace_dft)
+
+        # Copies of real space cell
+        self.supercell = 5
+
+        # List of species + position
+        self.species = ['H', 'C']
+        self.position = [-2, 2]
+
+        # SCF
+        self.history_length = 10
+        self.step_length = 0.6
+
+        # Coulomb softening parameter
+        self.soft = 0.1
+
+        self.manual_v_ext = False

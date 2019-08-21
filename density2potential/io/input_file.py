@@ -8,7 +8,7 @@ class parameters(object):
     def __init__(self,*args,**kwargs):
 
         # Space
-        self.Nspace = 101
+        self.Nspace = 301
         self.space = kwargs.pop('space',20)
         self.dx = self.space / (self.Nspace-1)
 
@@ -21,7 +21,7 @@ class parameters(object):
         self.num_electrons = kwargs.pop('num_electrons',2)
 
         # Misc.
-        self.stencil = kwargs.pop('stencil',5)
+        self.stencil = kwargs.pop('stencil',9)
 
         # Grid
         self.space_grid = np.linspace(-0.5*self.space, 0.5*self.space, self.Nspace)
@@ -53,13 +53,25 @@ class parameters(object):
         ################## DFT #################
 
         # Size of real space cell
-        self.cell = 10
+        self.cell = self.space
+        self.Nspace_dft = self.Nspace
+        self.dx_dft = self.cell / (self.Nspace_dft - 1)
+
+        # Grid
+        self.grid_dft = np.linspace(-0.5*self.cell, 0.5*self.cell, self.Nspace_dft)
 
         # Copies of real space cell
         self.supercell = 5
 
-        # Dict of species + position
-        self.input = { 'Al': 0.5,
-                       'Al': 1.0,
-                       'Al': 1.5,
-                       'Al': 2.0 }
+        # List of species + position
+        self.species = ['H', 'C']
+        self.position = [-2, 2]
+
+        # SCF
+        self.history_length = 10
+        self.step_length = 0.6
+
+        # Coulomb softening parameter
+        self.soft = 0.1
+
+        self.manual_v_ext = False

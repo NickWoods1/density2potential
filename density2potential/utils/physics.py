@@ -40,7 +40,7 @@ def calculate_density_ks(params, wavefunctions_ks):
 
         density[:] = abs(wavefunctions_ks[:,0])**2
 
-    elif params.num_electrons == 2:
+    elif params.num_electrons > 1:
 
         density = np.sum(abs(wavefunctions_ks[:,:])**2, axis=1)
 
@@ -52,3 +52,9 @@ def calculate_density_ks(params, wavefunctions_ks):
 def element_charges(params):
 
     # dict of element charges
+
+    elements = {'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5,
+                'C': 6, 'N': 7, 'O': 8, 'F': 9, 'Ne': 10
+                }
+
+    return elements

@@ -7,6 +7,7 @@ from density2potential.plot.animate import animate_function, animate_two_functio
 from density2potential.core.ks_potential import generate_ks_potential
 from density2potential.core.exact_TISE import solve_TISE
 from density2potential.core.exact_TDSE import solve_TDSE
+from density2potential.core.ks_DFT import minimise_energy
 
 """
 Entry point for the requested action
@@ -153,16 +154,11 @@ def main():
         np.save('td_ks_density', density_ks)
         np.save('td_ks_wavefunctions', wavefunctions_ks)
 
-    elif args.task == 'test':
+    elif args.task == 'dft':
 
-        vks = np.load('td_ks_potential.npy')
+        # Create parameters object
+        params = parameters()
 
-                # Read in the parameters used to generate reference density
-        params_save = open('params.obj', 'rb')
-        params = pickle.load(params_save)
+        minimise_energy(params)
 
 
-        for i in range(0,params.Ntime):
-            vks[i,:] -= np.sum(vks[i,:])/params.Nspace
-
-        animate_function(params, vks, 10, 'vks', 'vks')
