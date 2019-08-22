@@ -67,6 +67,16 @@ class parameters(object):
         self.species = ['H', 'C']
         self.position = [-2, 2]
 
+        self.num_atoms = len(self.species)
+
+
+        num_particles = 0
+        elements = element_charges()
+        for i in range(0,len(self.species)):
+            num_particles += elements[self.species[i]]
+
+        self.num_particles = num_particles
+
         # SCF
         self.history_length = 10
         self.step_length = 0.6
@@ -74,4 +84,5 @@ class parameters(object):
         # Coulomb softening parameter
         self.soft = 0.1
 
+        # Have v_ext specified by atoms or given explicitly
         self.manual_v_ext = False

@@ -34,7 +34,7 @@ def calculate_density_ks(params, wavefunctions_ks):
     Calculates the KS particle density given some KS wavefunctions [space, orbital #]
     """
 
-    density = np.zeros((params.Nspace))
+    density = np.zeros(params.Nspace)
 
     if params.num_electrons == 1:
 
@@ -49,7 +49,7 @@ def calculate_density_ks(params, wavefunctions_ks):
     return density
 
 
-def element_charges(params):
+def element_charges():
 
     # dict of element charges
 
@@ -58,3 +58,4 @@ def element_charges(params):
                 }
 
     return elements
+

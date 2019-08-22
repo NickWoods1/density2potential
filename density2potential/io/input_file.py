@@ -48,30 +48,3 @@ class parameters(object):
 
         # Method for time-propagation (KS and exact)
         self.time_step_method = 'expm'
-
-
-        ################## DFT #################
-
-        # Size of real space cell
-        self.cell = self.space
-        self.Nspace_dft = self.Nspace
-        self.dx_dft = self.cell / (self.Nspace_dft - 1)
-
-        # Grid
-        self.grid_dft = np.linspace(-0.5*self.cell, 0.5*self.cell, self.Nspace_dft)
-
-        # Copies of real space cell
-        self.supercell = 5
-
-        # List of species + position
-        self.species = ['H', 'C']
-        self.position = [-2, 2]
-
-        # SCF
-        self.history_length = 10
-        self.step_length = 0.6
-
-        # Coulomb softening parameter
-        self.soft = 0.1
-
-        self.manual_v_ext = False

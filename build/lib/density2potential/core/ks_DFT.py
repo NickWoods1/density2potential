@@ -10,14 +10,7 @@ potential
 """
 
 
-def minimise_energy(params):
-
-    vext = np.load('v_ext.npy')
-    den = np.load('finalden.npy')
-    plt.plot(vext+10)
-    plt.plot(den)
-    plt.ylim(-5,5)
-    plt.show()
+def minimise_energy_dft(params):
 
     # Array that will store SCF iterative densities and residuals
     history_of_densities_in = np.zeros((params.history_length, params.Nspace_dft))
@@ -86,22 +79,78 @@ def minimise_energy(params):
 
         i += 1
 
-
-    np.save('finalden.npy',density_out)
-
-    plt.plot(density_in)
+    plt.plot(density_out)
     plt.show()
-    # Construct H[rho]
-    # Diag for lowest N+something states H psi = E psi
-    # Is there a big gap?
-    # get output density
-    # density mixing, add history, pass history
-    # Converged? yes/no
+
+
+def minimise_energy_hf(params):
+
+    # Calculate number of particles
+    num_atoms = len(params.species)
+    num_particles = 0
+    elements = element_charges(params)
+    for i in range(0,len(params.species)):
+        num_particles += elements[params.species[i]]
+    params.num_electrons = num_particles
+
+    # Generate initial guess density (sum weighted Gaussians)
+    density_in = initial_guess_density(params)
+
+    # SCF loop
+    i, error = 0, 1
+    while error > 1e-10:
+
+        # Iteration number modulus history length
+        i_mod = i % params.history_length
+        i_mod_prev = (i-1) % params.history_length
+
+        # Construct Hamiltonian
+        hamiltonian = construct_ks_hamiltonian(params, density_in)
+
+        # Solve H psi = E psi
+        eigenvalues, eigenvectors = sp.linalg.eigh(hamiltonian)
+
+        # Extract lowest lying num_particles eigenfunctions and normalise
+        wavefunctions_ks = eigenvectors[:,0:num_particles]
+        wavefunctions_ks[:,0:num_particles] = normalise_function(params, wavefunctions_ks[:,0:num_particles])
+
+        # Calculate the output density
+        density_out = calculate_density_ks(params, wavefunctions_ks)
+
+        # Calculate total energy
+        energy = calculate_total_energy(params, eigenvalues[0:num_particles], density_out)
+
+        # L1 error between input and output densities
+        error = np.sum(abs(density_in - density_out)*params.dx_dft)
+        print('SCF error = {0} at iteration {1} with energy {2}'.format(error, i, energy))
+
+        # Store densities/residuals within the iterative history data
+        history_of_densities_in[i_mod,:] = density_in
+        history_of_densities_out[i_mod,:] = density_out
+        history_of_residuals[i_mod,:] = density_out - density_in
+
+        if i == 0:
+
+            # Damped linear step for the first iteration
+            density_in = density_in - params.step_length * (density_in - density_out)
+
+        elif i > 0:
+
+            # Store more iterative history data...
+            density_differences[i_mod_prev] = history_of_densities_in[i_mod] - history_of_densities_in[i_mod_prev]
+            residual_differences[i_mod_prev] = history_of_residuals[i_mod] - history_of_residuals[i_mod_prev]
+
+            # Perform Pulay step using the iterative history data
+            density_in = pulay_mixing_kresse(params, density_differences, residual_differences,
+                                             history_of_residuals[i_mod], history_of_densities_in[i_mod], i)
+
+        i += 1
+
 
 
 def pulay_mixing_kresse(params, density_differences, residual_differences, current_residual, current_density_in, i):
     r"""
-    As presented in Kresse (1998)
+    As shown in Kresse (1998)
     """
 
     # Allocates arrays appropriately before and after max history size is reached
