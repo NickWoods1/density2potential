@@ -54,21 +54,24 @@ def solve_TISE(params):
     hamiltonian = construct_H_sparse(params, basis_type='position')
 
     # Perform the transformation U^T H U = H': project out the antisymmetric subspace of H
-    #hamiltonian = hamiltonian.dot(antisymm_expansion)
-    #hamiltonian = antisymm_reduction.dot(hamiltonian)
+    hamiltonian = hamiltonian.dot(antisymm_expansion)
+    hamiltonian = antisymm_reduction.dot(hamiltonian)
+
+    # Regularisation??
+    hamiltonian += sp.sparse.csr_matrix(100*np.eye(len(sp.sparse.csr_matrix.todense(hamiltonian))))
 
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
-    #eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigsh(hamiltonian, 1, which='SM', v0=-wavefunction)
-    eigenenergy_gs, eigenfunction_gs = sp.linalg.eigh(sp.sparse.csr_matrix.todense(hamiltonian))
+    eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigs(hamiltonian, 1, which='SM', v0=-wavefunction)
+    #eigenenergy_gs, eigenfunction_gs = sp.linalg.eigh(sp.sparse.csr_matrix.todense(hamiltonian))
 
     # Expand to full antisymmetric solution
-    #wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
+    wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
 
     # Normalise the eigenfunction
     wavefunction *= (np.sum(wavefunction[:]**2) * params.dx**2)**-0.5
 
     # Ground state energy (n.b. undo the potential shift)
-    eigenenergy_gs = np.amin(eigenenergy_gs) - params.num_electrons*params.v_ext_shift
+    eigenenergy_gs = np.amin(eigenenergy_gs) - params.num_electrons*params.v_ext_shift - 100
     print('Ground state energy: {0}'.format(eigenenergy_gs))
 
     # Compute density

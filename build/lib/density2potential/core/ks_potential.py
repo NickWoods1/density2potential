@@ -20,12 +20,6 @@ def generate_ks_potential(params,density_reference):
     :return: density_ks, v_ks, wavefunctions_ks: ndarray, the optimised density, Kohn-Sham potential and wavefunctions
     """
 
-    ideaden = np.load('td_density_exact.npy')
-
-    plt.plot(ideaden[0,:] - density_reference[0,:])
-    plt.show()
-    #density_reference = ideaden
-
     # Deal with ground state before time-dependence
     # Init variables
     v_ks = np.zeros((params.Ntime,params.Nspace))
@@ -64,13 +58,6 @@ def generate_ks_potential(params,density_reference):
         v_ks[0,:] -= 0.01*(density_reference[0,:] - density_ks[0,:]) / density_reference[0,:]
         #v_ks[0,:] -= density_reference[0,:]**0.05 - density_ks[0,:]**0.05
 
-        #if i % 10000 == 0:
-        #    plt.plot(v_ks[0,:])
-        #    plt.plot(density_ks[0,:])
-        #    plt.plot(density_reference[0,:])
-        #    plt.show()
-
-
         print('Error = {0} after {1} iterations'.format(error,i), end='\r')
 
         i += 1
@@ -96,7 +83,7 @@ def generate_ks_potential(params,density_reference):
     print(' ')
 
     # Now optimise the time-dependent KS potential
-    for i in range(1,15):#params.Ntime):
+    for i in range(1,params.Ntime):
 
         # Find the v_ks that minimises the specified objective function
         opt_info = root(evolution_objective_function,v_ks[i,:],args=(params,wavefunctions_ks[i-1,:,:],density_reference[i,:],

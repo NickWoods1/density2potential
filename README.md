@@ -1,13 +1,13 @@
-*****************
-density2potential
-*****************
+********************
+## density2potential
+********************
 
 `density2potental` is a python package designed to compute a Kohn-Sham
 effective potential that generates an input reference density.
 
-*************
-Functionality
-*************
+*****************
+### Functionality
+*****************
 
 `exact` computes an exact time-dependent density from a given 
 time-dependent external potential, where the particles

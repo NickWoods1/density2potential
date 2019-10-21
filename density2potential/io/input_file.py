@@ -8,13 +8,13 @@ class parameters(object):
     def __init__(self,*args,**kwargs):
 
         # Space
-        self.Nspace = 301
-        self.space = kwargs.pop('space',20)
+        self.Nspace = 81
+        self.space = kwargs.pop('space',10)
         self.dx = self.space / (self.Nspace-1)
 
         # Time
-        self.Ntime = 10
-        self.time = kwargs.pop('time',0.01)
+        self.Ntime = 1000
+        self.time = kwargs.pop('time',10)
         self.dt = self.time / (self.Ntime-1)
 
         # N
@@ -29,8 +29,11 @@ class parameters(object):
 
         # Ground state external potential (e.g. Gaussian and QHO respectively)
         #self.v_ext = -4.0 * np.exp(-0.2 * self.space_grid**2)
-        #self.v_ext = 0.5*(0.25**2)*self.space_grid**2
-        self.v_ext = 5e-11*self.space_grid**10 - 1.3e-4*self.space_grid**4
+        self.v_ext = 0.5*(0.25**2)*self.space_grid**2
+        #self.v_ext = 5e-11*self.space_grid**10 - 1.3e-4*self.space_grid**4
+        #self.v_ext = -2 / (abs(self.space_grid) + 1)
+
+        #self.v_ext = np.load('vext.npy')
 
         # Shift the potential such that the eigenvalues are negative
         self.v_ext_shift = 0 #abs(2.0*np.amin(self.v_ext))
