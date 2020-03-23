@@ -8,7 +8,7 @@ class parameters(object):
     def __init__(self,*args,**kwargs):
 
         # Space
-        self.Nspace = 81
+        self.Nspace = 101
         self.space = kwargs.pop('space',10)
         self.dx = self.space / (self.Nspace-1)
 

@@ -7,6 +7,12 @@ from density2potential.plot.animate import animate_function, animate_two_functio
 from density2potential.core.ks_potential import generate_ks_potential
 from density2potential.core.exact_TISE import solve_TISE
 from density2potential.core.exact_TDSE import solve_TDSE
+from density2potential.utils.math import discrete_Laplace
+
+#/TODO DELETE AFTER TESTING DONE
+from density2potential.core.linear_response import two_particle_susceptibility
+from density2potential.core.exact_TISE import expansion_and_reduction_matrix, construct_H_sparse, initial_guess_wavefunction, calculate_density_exact, pack_wavefunction
+import scipy as sp
 
 """
 Entry point for the requested action
@@ -121,6 +127,7 @@ def main():
 
         print('Finished successfully')
 
+    # Solve exact TDSE, then reverse-engineer to get v_ks
     elif args.task == 'exact-then-vks':
 
         # Create parameters object
@@ -152,3 +159,60 @@ def main():
         np.save('td_ks_potential', v_ks)
         np.save('td_ks_density', density_ks)
         np.save('td_ks_wavefunctions', wavefunctions_ks)
+
+    elif args.task == 'LR':
+
+        # EXPERIMENTAL JUNK
+        # \TODO TIDY THIS UP
+
+        params = parameters()
+
+        wavefunction, density, energy = solve_TISE(params)
+        print(energy)
+
+        # Antisymmetry operator A and A^-1 s.t. psi = A phi, for psi antisymmetric, phi distinct elements of psi
+        antisymm_expansion, antisymm_reduction = expansion_and_reduction_matrix(params)
+
+        # Construct the sparse many-body Hamiltonian directly in an antisymmetric basis
+        hamiltonian = construct_H_sparse(params, basis_type='position')
+
+        # Perform the transformation U^T H U = H': project out the antisymmetric subspace of H
+        hamiltonian = hamiltonian.dot(antisymm_expansion)
+        hamiltonian = antisymm_reduction.dot(hamiltonian)
+
+        # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
+        #eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigs(hamiltonian, 1, which='SM', v0=-wavefunction)
+        eigenenergy_gs, eigenfunction_gs = sp.linalg.eigh(sp.sparse.csr_matrix.todense(hamiltonian))
+
+        # Expand to full antisymmetric solution
+        #wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,2000])
+
+        wavefunction = np.zeros((len(eigenenergy_gs), 10201), dtype=complex)
+        for i in range(len(eigenenergy_gs)):
+            wavefunction[i,:] = antisymm_expansion.dot(eigenfunction_gs[:,i])
+            wavefunction[i,:] *= (np.sum(wavefunction[i,:]**2) * params.dx**2)**-0.5
+
+
+        # Ground state energy (n.b. undo the potential shift)
+        #eigenenergy_gs = eigenenergy_gs[2000]
+        #print('Ground state energy: {0}'.format(eigenenergy_gs))
+
+        wvfn_packed = np.zeros((len(eigenenergy_gs), params.Nspace, params.Nspace), dtype=complex)
+        for i in range(len(eigenenergy_gs)):
+            wvfn_packed[i,:,:] = pack_wavefunction(params, wavefunction[i,:])
+
+        suscept = two_particle_susceptibility(params, wvfn_packed, eigenenergy_gs)
+
+        eigvals, eigvecs = np.linalg.eigh(suscept)
+        print(eigvals)
+
+        plt.imshow(suscept.real)
+        plt.show()
+
+        density = calculate_density_exact(params, wavefunction[1,:])
+        plt.plot(density, label='Ground state density')
+        plt.plot(params.v_ext - np.amin(params.v_ext), label='External potential')
+        plt.title('Ground state energy = {} a.u.'.format(energy))
+        plt.legend()
+        plt.savefig('groundstate_den_and_vext.pdf')
+

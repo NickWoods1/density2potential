@@ -10,6 +10,7 @@ density2potential/core/__init__.py
 density2potential/core/exact_TDSE.py
 density2potential/core/exact_TISE.py
 density2potential/core/ks_potential.py
+density2potential/core/linear_response.py
 density2potential/core/main.py
 density2potential/io/__init__.py
 density2potential/io/input_file.py
