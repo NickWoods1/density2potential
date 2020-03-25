@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from density2potential.plot.animate import animate_function, animate_two_functions
 from density2potential.utils.math import norm, normalise_function, discrete_Laplace
 from density2potential.utils.physics import calculate_density_ks
+from density2potential.core.linear_response import ks_susceptibility
 
 """
 Functions that contain the core functionality to find a Kohn-Sham potential given a density

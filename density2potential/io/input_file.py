@@ -8,13 +8,13 @@ class parameters(object):
     def __init__(self,*args,**kwargs):
 
         # Space
-        self.Nspace = 101
-        self.space = kwargs.pop('space',10)
+        self.Nspace = 81
+        self.space = kwargs.pop('space',20)
         self.dx = self.space / (self.Nspace-1)
 
         # Time
-        self.Ntime = 1000
-        self.time = kwargs.pop('time',10)
+        self.Ntime = 10
+        self.time = kwargs.pop('time',1)
         self.dt = self.time / (self.Ntime-1)
 
         # N

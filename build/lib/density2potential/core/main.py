@@ -9,7 +9,7 @@ from density2potential.core.exact_TISE import solve_TISE
 from density2potential.core.exact_TDSE import solve_TDSE
 from density2potential.utils.math import discrete_Laplace
 
-
+#/TODO DELETE AFTER TESTING DONE
 from density2potential.core.linear_response import two_particle_susceptibility
 from density2potential.core.exact_TISE import expansion_and_reduction_matrix, construct_H_sparse, initial_guess_wavefunction, calculate_density_exact, pack_wavefunction
 import scipy as sp
@@ -161,6 +161,9 @@ def main():
         np.save('td_ks_wavefunctions', wavefunctions_ks)
 
     elif args.task == 'LR':
+
+        # EXPERIMENTAL JUNK
+        # \TODO TIDY THIS UP
 
         params = parameters()
 

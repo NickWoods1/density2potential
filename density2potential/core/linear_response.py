@@ -3,7 +3,32 @@ Linear response properties of time-independent and time-dependent QM
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
+def ks_susceptibility(params, eigenfunctions, eigenenergies):
+
+    num_occ = params.num_electrons
+    susceptibility = np.zeros((params.Nspace, params.Nspace), dtype=complex)
+
+    # Sum over occupied/unoccupied pairs
+    for i in range(num_occ):
+        for j in range(num_occ, params.Nspace):
+            # Difference in energies between occ/unocc states
+            delta_energy = eigenenergies[i] - eigenenergies[j]
+
+            f = eigenfunctions[:, i].conj() * eigenfunctions[:, j]
+            g = eigenfunctions[:, j].conj() * eigenfunctions[:, i]
+            susceptibility[:, :] += 2 * np.outer(f, g) / delta_energy
+
+    """
+    eigv, eigf = np.linalg.eigh(susceptibility)
+    print(eigv)
+    for i in range(len(eigv)):
+        plt.plot(eigf[:,-i].real)
+        plt.show()
+    """
+
+    return susceptibility
 
 def two_particle_susceptibility(params, wavefunction, energy):
     r"""
