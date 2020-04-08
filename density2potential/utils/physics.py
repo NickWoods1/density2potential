@@ -11,8 +11,9 @@ def calculate_density_exact(params, wavefunction):
     used in this package.
     """
 
-    density = np.zeros((params.Nspace))
-
+    # TODO There is a mistake in this definition...
+    """ 
+    density = np.zeros((params.Nspace)) 
     if params.num_electrons == 1:
 
         density[:] = abs(wavefunction[:])**2
@@ -24,7 +25,17 @@ def calculate_density_exact(params, wavefunction):
             u_bound = int(params.Nspace*(i + 1) - 1)
             density[i] = np.sum(abs(wavefunction[l_bound:u_bound])**2) * params.dx
 
-    density *= params.num_electrons*(np.sum(density[:]) * params.dx)**-1.0
+    density *= 2
+    #density *= params.num_electrons*(np.sum(density[:]) * params.dx)**-1.0
+    """
+
+    wavefunction = pack_wavefunction(params, wavefunction)
+    density = np.zeros(params.Nspace)
+    if params.num_electrons == 1:
+        density[:] = abs(wavefunction[:]) ** 2
+    else:
+        density = np.sum(abs(wavefunction[:,:])**2, axis=1)
+        density *= 2*params.dx
 
     return density
 
@@ -47,3 +58,21 @@ def calculate_density_ks(params, wavefunctions_ks):
     density *= params.num_electrons*(np.sum(density[:]) * params.dx)**-1.0
 
     return density
+
+
+def pack_wavefunction(params,wavefunction):
+    """
+    Turns an N**2 1D array wavefunction into a NxN 2D array wavefunction given some mapping NxNxNxN ----> N^2 x N^2
+    TODO REMOVE THIS....
+    """
+
+    wavefunction_packed = np.zeros((params.Nspace,params.Nspace), dtype=np.complex)
+    i, j, k = 0, params.Nspace, 0
+    while j<= params.Nspace**2:
+        wavefunction_packed[:,k] = wavefunction[i:j]
+        k += 1
+        i += params.Nspace
+        j += params.Nspace
+
+    return wavefunction_packed
+

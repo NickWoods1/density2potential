@@ -11,6 +11,7 @@ Solve the exact time-dependent Schrodinger equation in 1D to generate exact evol
 wavefunction and density
 """
 
+
 def solve_TDSE(params, wavefunction_initial):
     r"""
     Solves the time-dependent Schrodinger equation given an initial wavefunction and external potential v(x,t)

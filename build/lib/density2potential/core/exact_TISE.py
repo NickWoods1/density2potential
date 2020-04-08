@@ -1,6 +1,7 @@
 import numpy as np
 from density2potential.utils.math import discrete_Laplace, norm, normalise_function
 from density2potential.utils.physics import calculate_density_exact
+from density2potential.core.ks_potential import hartree_potential
 from density2potential.plot.animate import animate_function
 import matplotlib.pyplot as plt
 import scipy as sp
@@ -58,7 +59,7 @@ def solve_TISE(params):
     hamiltonian = antisymm_reduction.dot(hamiltonian)
 
     # Regularisation??
-    hamiltonian += sp.sparse.csr_matrix(100*np.eye(len(sp.sparse.csr_matrix.todense(hamiltonian))))
+    #hamiltonian += sp.sparse.csr_matrix(100*np.eye(len(sp.sparse.csr_matrix.todense(hamiltonian))))
 
     # Find g.s. eigenvector and eigenvalue using Lanszcos algorithm
     eigenenergy_gs, eigenfunction_gs = sp.sparse.linalg.eigs(hamiltonian, 1, which='SM', v0=-wavefunction)
@@ -68,10 +69,11 @@ def solve_TISE(params):
     wavefunction = antisymm_expansion.dot(eigenfunction_gs[:,0])
 
     # Normalise the eigenfunction
-    wavefunction *= (np.sum(wavefunction[:]**2) * params.dx**2)**-0.5
+    wavefunction *= (np.sum(abs(wavefunction[:])**2) * params.dx**2)**-0.5
 
     # Ground state energy (n.b. undo the potential shift)
-    eigenenergy_gs = np.amin(eigenenergy_gs) - params.num_electrons*params.v_ext_shift - 100
+    #eigenenergy_gs = np.amin(eigenenergy_gs) - params.num_electrons*params.v_ext_shift - 100
+
     print('Ground state energy: {0}'.format(eigenenergy_gs))
 
     # Compute density
@@ -120,7 +122,7 @@ def construct_H_sparse(params, basis_type):
         for j in range(0,params.Nspace):
 
             # Add Coulomb
-            potential[i,j] += 1 / (abs(params.space_grid[i] - params.space_grid[j]) + 0.1)
+            potential[i,j] += 1 / (abs(params.space_grid[i] - params.space_grid[j]) + 1.0)
 
             # Add external
             potential[i,j] += params.v_ext[i] + params.v_ext[j]

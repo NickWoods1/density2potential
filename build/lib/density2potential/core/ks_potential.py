@@ -68,7 +68,7 @@ def generate_ks_potential(params,density_reference):
 
 
     # Compute the ground-state potential using a scipy optimiser
-    opt_info = root(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[:,:,:], density_reference[0,:],
+    opt_info = root(groundstate_objective_function, v_ks[0, :], args=(params, wavefunctions_ks[0,:,:], density_reference[0,:],
                                                                       ), method='hybr', tol=1e-16)
 
     # Output v_ks
@@ -115,6 +115,78 @@ def generate_ks_potential(params,density_reference):
     return density_ks, v_ks, wavefunctions_ks
 
 
+def generate_gsks_potential(params,density_reference):
+    r"""
+    Reverse engineers a reference ground state density to produce a Kohn-Sham potential
+
+    :param params: input parameters object
+    :param density_reference: ndarray, the reference density, axes [time,space]
+    :return: density_ks, v_ks, wavefunctions_ks: ndarray, the optimised density, Kohn-Sham potential and wavefunctions
+    """
+
+    # Deal with ground state before time-dependence
+    # Init variables
+    v_ks = np.zeros(params.Nspace)
+    density_ks = np.zeros(params.Nspace)
+    wavefunctions_ks = np.zeros((params.Nspace,params.num_electrons), dtype=complex)
+
+    # Initial guess for the Kohn-Sham potential
+    v_ks[:] = params.v_ext
+
+    # Compute the ground-state Kohn-Sham potential
+    i, error = 0, 1
+    while(error > 5e-10):
+
+        # Construct Hamiltonian for a given Kohn-Sham potential
+        hamiltonian = construct_H(params,v_ks[:])
+
+        # Find eigenvectors and eigenvalues of this Hamiltonian
+        eigenenergies_ks, eigenfunctions_ks = sp.linalg.eigh(hamiltonian)
+        eigenfunctions_ks = eigenfunctions_ks.real
+
+        # Store the lowest N_electron eigenfunctions as wavefunctions
+        wavefunctions_ks[:,0:params.num_electrons] = eigenfunctions_ks[:,0:params.num_electrons]
+
+        # Normalise the wavefunctions w.r.t the continous L2 norm
+        wavefunctions_ks[:,0:params.num_electrons] = normalise_function(params,
+                                                                          wavefunctions_ks[:,0:params.num_electrons])
+
+        # Construct KS density
+        density_ks[:] = calculate_density_ks(params, wavefunctions_ks[:,:])
+
+        # Error in the KS density away from the reference density
+        error = norm(params,density_ks[:] - density_reference[:],'MAE')
+
+        # Update the KS potential with a steepest descent scheme
+        v_ks[:] -= 0.01*(density_reference[:] - density_ks[:]) / density_reference[:]
+        #v_ks[0,:] -= density_reference[0,:]**0.05 - density_ks[0,:]**0.05
+
+        print('Error = {0} after {1} iterations'.format(error,i), end='\r')
+
+        i += 1
+
+    print('Final error in the ground state KS density is {0} after {1} iterations'.format(error,i))
+    print(' ')
+
+    # Compute the ground-state potential using a scipy optimiser
+    opt_info = root(groundstate_objective_function, v_ks[:], args=(params, wavefunctions_ks[:,:], density_reference[:],
+                                                                      ), method='hybr', tol=1e-16)
+
+    # Output v_ks
+    v_ks[:] = opt_info.x
+
+    # Compute the corresponding wavefunctions, density, and error
+    hamiltonian = construct_H(params, v_ks[:])
+    eigenenergies_ks, eigenfunctions_ks = sp.linalg.eigh(hamiltonian)
+    eigenfunctions_ks[:,0::] = normalise_function(params,eigenfunctions_ks[:,0::])
+    density_ks[:] = calculate_density_ks(params, wavefunctions_ks[:,0:params.num_electrons])
+    error = norm(params, density_ks[:] - density_reference[:], 'MAE')
+    print('Final root finder error = {0} after {1} function evaluations. Status: {2}'.format(error,opt_info.nfev,opt_info.success))
+    print(' ')
+
+    return density_ks, v_ks, eigenfunctions_ks, eigenenergies_ks
+
+
 def groundstate_objective_function(v_ks,params,wavefunctions_ks,density_reference):
     r"""
     Ground state objective function, the root of which is the Kohn-Sham potential that generates a ground
@@ -128,13 +200,13 @@ def groundstate_objective_function(v_ks,params,wavefunctions_ks,density_referenc
     eigenenergies_ks, eigenfunctions_ks = sp.linalg.eigh(hamiltonian)
 
     # Store the lowest N_electron eigenfunctions as wavefunctions
-    wavefunctions_ks[0, :, 0:params.num_electrons] = eigenfunctions_ks[:, 0:params.num_electrons]
+    wavefunctions_ks[:, 0:params.num_electrons] = eigenfunctions_ks[:, 0:params.num_electrons]
 
     # Normalise the wavefunctions w.r.t the continous L2 norm
-    wavefunctions_ks[0, :, 0:params.num_electrons] = normalise_function(params,wavefunctions_ks[0, :, 0:params.num_electrons])
+    wavefunctions_ks[:, 0:params.num_electrons] = normalise_function(params,wavefunctions_ks[:, 0:params.num_electrons])
 
     # Construct KS density
-    density_ks = np.sum(np.abs(wavefunctions_ks[0, :, :])**2, axis=1, dtype=np.float)
+    density_ks = np.sum(np.abs(wavefunctions_ks[:, :])**2, axis=1, dtype=np.float)
 
     return density_reference[:] - density_ks[:]
 
@@ -243,5 +315,25 @@ def construct_H(params,v_ks):
     return hamiltonian
 
 
+def hartree_potential(params, density):
+    r"""
+    Construct Hartree potental for a given density
+    """
+
+    v_h = np.zeros(params.Nspace)
+    for i in range(params.Nspace):
+        for j in range(params.Nspace):
+
+            v_h[i] += density[j] / (abs(params.space_grid[i] - params.space_grid[j]) + 1.0)
+
+    v_h *= params.dx
+
+    return v_h
 
 
+def xc_potential(params, density, v_ks):
+
+    v_h = hartree_potential(params, density)
+    v_xc = v_ks - v_h - params.v_ext
+
+    return v_xc
