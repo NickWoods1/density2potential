@@ -4,9 +4,13 @@ Linear response properties of time-independent and time-dependent QM
 
 import numpy as np
 import matplotlib.pyplot as plt
+import findiff
 
 
 def ks_susceptibility(params, eigenfunctions, eigenenergies):
+    """
+    KS linear response function
+    """
 
     num_occ = params.num_electrons
     susceptibility = np.zeros((params.Nspace, params.Nspace), dtype=complex)
@@ -27,7 +31,7 @@ def ks_susceptibility(params, eigenfunctions, eigenenergies):
 
 def exact_susceptibility(params, wavefunction, energy):
     r"""
-    The linear response function \chi(x,x') = d v_ext / d rho, calculated from wavefunctions of H
+    The exact density linear response function \chi(x,x') = d v_ext / d rho, calculated from wavefunctions of H
     in the ground state
     """
 
@@ -52,87 +56,63 @@ def exact_susceptibility(params, wavefunction, energy):
 
 
 def xc_kernel(params, susceptibility_exact, susceptibility_ks):
+    """
+    Compute f_xc = chi^-1 - chi_0^-1 - v_int
+    """
 
     chi_inv = np.linalg.pinv(susceptibility_exact)
     chi0_inv = np.linalg.pinv(susceptibility_ks)
 
-    A = susceptibility_exact
-    B = susceptibility_ks
-
-    """
-    singval_cutoff = 1e-22
-    identity = np.eye(params.Nspace)
-
-    chi_inv, residuals, rank, singvals = np.linalg.lstsq(A.T.dot(A) + singval_cutoff*identity, A.T, rcond=None)
-    chi0_inv, residuals, rank, singvals = np.linalg.lstsq(B.T.dot(B) + singval_cutoff*identity, B.T, rcond=None)
-    """
-
-    v_int = np.zeros((params.Nspace, params.Nspace))
-    for i in range(params.Nspace):
-        for j in range(params.Nspace):
-            v_int[i,j] = 1 / (abs(params.space_grid[i] - params.space_grid[j]) + 1)
-
-    f_xc = (chi0_inv - chi_inv)*(1/params.dx**2) - v_int
-
-    """
-    eigv, eigf = np.linalg.eigh(f_xc)
-    for i in range(params.Nspace):
-
-        plt.clf()
-        plt.plot(eigf[:,i].real)
-        plt.savefig(f'{i}.png')
-    """
+    f_xc = (chi0_inv - chi_inv)*(1/params.dx**2) - params.v_int
 
     return f_xc
 
 
 def dyson(params, chi_ks, f_xc):
-
-    v_int = np.zeros((params.Nspace, params.Nspace))
-    for i in range(params.Nspace):
-        for j in range(params.Nspace):
-            v_int[i,j] = 1 / (abs(params.space_grid[i] - params.space_grid[j]) + 1)
+    """
+    Solve Dyson equation to recover chi from f_xc and chi0
+    """
 
     identity = np.eye(params.Nspace)
-    f_hxc = v_int + f_xc
+    f_hxc = params.v_int + f_xc
     A = identity - chi_ks @ (f_hxc*params.dx**2)
-
     chi_dyson = np.linalg.solve(A, chi_ks)
 
     return chi_dyson
 
 
-def sum_rule(params, f_xc, gs_density, gs_vxc):
+def sum_rule(params, f_xc, density_gs, vxc_gs, i):
     """ Check various exact conditions, see Ullrich TDDFT book """
 
     N = params.Nspace
 
+    # One dimensional derivative operator
+    d_dx = findiff.FinDiff(0, params.dx, acc=10)
+
     # Check Zero-Force theorem on ground-state XC potential
-    grad_vxc = np.gradient(gs_vxc, params.dx)
-    error = np.dot(grad_vxc, gs_density) * params.dx
-    print('Error in ZF theorem: {}'.format(error))
+    grad_vxc = d_dx(vxc_gs)
+    error = np.dot(grad_vxc, density_gs)*params.dx
+    print('Error in the ground-state zero-force theorem: {}'.format(error))
 
     # Check weakest ZFSR: (8.12) in Ullrich TTDFT.
-    error = 0
-    grad_fxc = np.gradient(f_xc[:,:], params.dx, axis=0)
+    error_weak = 0
+    grad_den = d_dx(density_gs)
     for j in range(N):
         for k in range(N):
-            error += grad_fxc[j,k]*gs_density[j]*gs_density[k]*params.dx**2
+            error_weak += f_xc[j,k]*grad_den[j]*density_gs[k]*params.dx**2
     print('Weak ZFSR error is {}'.format(error))
 
     # Check strong ZFSR
-    grad_den = np.gradient(gs_density, params.dx)
-    grad_vxc = np.gradient(gs_vxc, params.dx)
     tmp = np.zeros(N, dtype=complex)
     for k in range(N):
         tmp[k] = np.sum(f_xc[k,:]*grad_den[:])*params.dx
-    error = np.sum(abs(tmp - grad_vxc))*params.dx
+    error_strong = np.sum(abs(tmp - grad_vxc))*params.dx
     print('Strong ZFSR error is {}'.format(error))
-    #plt.clf()
-    #plt.plot(tmp.real, label='lhs')
-    #plt.plot(grad_vxc.real, label='rhs')
-    #plt.show()
 
-
-
-    return 0
+    # Plot...
+    plt.clf()
+    plt.title('Weak ZFSR error: {:0.3e}. Strong ZFSR error: {:1.3e}'.format(error_weak, error_strong))
+    plt.plot(tmp.real, label='int grad(n) f_xc')
+    plt.plot(grad_vxc.real, label='grad(v_xc)')
+    plt.legend()
+    plt.savefig(f'ZFSR_{i}.png')

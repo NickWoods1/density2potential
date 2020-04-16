@@ -8,6 +8,7 @@ import shutil
 Various plotting utilities
 """
 
+
 def plot_surface_3d(params, matrix):
     """
     Interactive 3D surface plot of a matrix.
@@ -19,14 +20,16 @@ def plot_surface_3d(params, matrix):
     x = np.outer(params.space_grid, np.ones(params.Nspace))
     y = x.copy().T
 
-    # Create fig w/ 2 subplots for real and imag
+    # Create fig w/ 2 subplots for real and imag of matrix
     fig = plt.figure(figsize=(10,3))
     plot1 = fig.add_subplot(1, 2, 1, projection='3d')
     plot2 = fig.add_subplot(1, 2, 2, projection='3d')
 
-    plot1.plot_surface(x, y, matrix.real, cmap='YlGnBu')#, edgecolor='none')
-    plot2.plot_surface(x, y, matrix.imag, cmap='viridis', edgecolor='none')
+    # Plot the 3D surface
+    plot1.plot_surface(x, y, matrix.real, cmap='YlGnBu')
+    plot2.plot_surface(x, y, matrix.imag, cmap='YlGnBu')
 
+    # Labels...
     plot1.set_title('Real')
     plot1.set_xlabel('x (a.u)')
     plot1.set_ylabel('y (a.u)')
@@ -51,10 +54,11 @@ def plot_heat_map(params, matrix, figtitle='f(x,y)', figname='default.pdf'):
     plot2 = fig.add_subplot(1, 2, 2)
 
     # Each plot is heatmap w/ colorbar on each
-    heatmap1 = plot1.imshow(matrix.real, cmap='Spectral', origin='lower', interpolation='gaussian')
-    heatmap2 = plot2.imshow(matrix.imag, cmap='jet', origin='lower', interpolation='gaussian')
+    heatmap1 = plot1.imshow(matrix.real, cmap='Spectral', origin='lower', interpolation='gaussian')#, vmin=-4, vmax=4)
+    heatmap2 = plot2.imshow(matrix.imag, cmap='jet', origin='lower', interpolation='gaussian')#, vmin=-4, vmax=4)
     fig.colorbar(heatmap1, ax=plot1, fraction=0.046, pad=0.04)
     fig.colorbar(heatmap2, ax=plot2, fraction=0.046, pad=0.04)
+
 
     # Set labels
     fig.suptitle(figtitle)
@@ -69,7 +73,6 @@ def plot_heat_map(params, matrix, figtitle='f(x,y)', figname='default.pdf'):
 
     # Plot...
     fig.tight_layout()
-    plt.show()
     plt.savefig(figname)
 
 
@@ -92,7 +95,7 @@ def plot_eigenvector_decomp(params, matrix, figtitle='f(x,y)', dirname='default'
     for i in range(len(eigv)):
         eigf_tmp[:,i] = eigf[:, args[i]]
         eigv_tmp[i] = eigv[args[i]]
-    eigf, eigv = eigf_tmp, eigv_tmp
+    eigf, eigv = np.flip(eigf_tmp, axis=1), np.flip(eigv_tmp)
 
     # Plot
     for p in range(len(eigv)):
@@ -147,7 +150,7 @@ def plot_build_eigenvector_decomp(params, matrix, figtitle='f(x,y)', dirname='de
     for i in range(len(eigv)):
         eigf_tmp[:,i] = eigf[:, args[i]]
         eigv_tmp[i] = eigv[args[i]]
-    eigf, eigv = eigf_tmp, eigv_tmp
+    eigf, eigv = np.flip(eigf_tmp, axis=1), np.flip(eigv_tmp)
 
     # Plot
     for p in range(len(eigv)):
